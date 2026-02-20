@@ -1,0 +1,14 @@
+# Common excludes
+.git
+.gitignore
+.env
+.env.*
+node_modules
+dist
+test-encrypt.ts
+
+# Folders to exclude from frontend build context
+backend
+ai-service
+docs
+migrations

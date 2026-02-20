@@ -1,0 +1,37 @@
+
+project_id = "ifxhfhyvzntkenwklcdl"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+site_url = "http://127.0.0.1:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+
+[functions.content-generator]
+verify_jwt = true
+
+[functions.content-scraper]
+verify_jwt = true
+
+[functions.llm-topic-extractor]
+verify_jwt = true
+
+[functions.topic-research]
+verify_jwt = true
+
+[functions.validate-rss]
+verify_jwt = true
+
+[functions.process-delivery]
+verify_jwt = true
+
+[functions.setup-delivery-cron]
+verify_jwt = false
