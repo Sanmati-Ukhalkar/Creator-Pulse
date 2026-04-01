@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     AI_SERVICE_KEY: str  # Shared secret for backend authentication
 
     # Optional with defaults
-    OPENAI_MODEL: str = "gpt-4"
+    OPENAI_MODEL: str = "gpt-4o-mini"
     MAX_ARTICLE_LENGTH: int = 5000
     PORT: int = 8000
     DEBUG: bool = False

@@ -84,15 +84,15 @@ export const schedulerService = {
                 [post.id]
             );
 
-            // 5. Create entry in published_posts log (for history)
+            // 5. Create entry in delivery_schedules (log for frontend tracking)
             await pool.query(
-                `INSERT INTO published_posts 
-                (user_id, platform, platform_post_id, content, published_at, status)
-                VALUES ($1, $2, $3, $4, NOW(), 'published')`,
-                [post.user_id, 'linkedin', result.id, post.content]
+                `INSERT INTO delivery_schedules
+                (user_id, status, content_id, sent_at, created_at)
+                VALUES ($1, 'sent', $2, NOW(), NOW())`,
+                [post.user_id, post.id]
             );
 
-            logger.info(`Scheduled post ${post.id} published successfully as regular post ${result.id}`);
+            logger.info(`Scheduled post ${post.id} published successfully`);
 
         } catch (err: any) {
             logger.error(`Failed to publish scheduled post ${post.id}`, { error: err.message });
@@ -101,6 +101,14 @@ export const schedulerService = {
             await pool.query(
                 `UPDATE scheduled_posts SET status = 'failed', error_message = $1, updated_at = NOW() WHERE id = $2`,
                 [err.message, post.id]
+            );
+
+            // Log failure to delivery_schedules
+            await pool.query(
+                `INSERT INTO delivery_schedules
+                (user_id, status, content_id, error_message, created_at)
+                VALUES ($1, 'failed', $2, $3, NOW())`,
+                [post.user_id, post.id, err.message]
             );
         }
     }

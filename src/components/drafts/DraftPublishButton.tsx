@@ -6,11 +6,12 @@ import { useToast } from "@/hooks/use-toast";
 
 interface DraftPublishButtonProps {
     content: string;
+    draftId?: string;
     onSuccess?: () => void;
     disabled?: boolean;
 }
 
-export function DraftPublishButton({ content, onSuccess, disabled }: DraftPublishButtonProps) {
+export function DraftPublishButton({ content, draftId, onSuccess, disabled }: DraftPublishButtonProps) {
     const [isPublishing, setIsPublishing] = useState(false);
     const { toast } = useToast();
 
@@ -19,7 +20,10 @@ export function DraftPublishButton({ content, onSuccess, disabled }: DraftPublis
 
         setIsPublishing(true);
         try {
-            await api.post('/publish', { content });
+            await api.post('/publish', { 
+                content,
+                draft_id: draftId 
+            });
 
             toast({
                 title: "Published!",

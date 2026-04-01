@@ -1,18 +1,21 @@
 import React from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  Sparkles, 
-  TrendingUp, 
-  Settings, 
+import {
+  LayoutDashboard,
+  Sparkles,
+  TrendingUp,
+  Settings,
   Zap,
   BarChart3,
   Calendar,
   Users,
   Rss,
   FileText,
-  Send
+  Send,
+  LogOut,
+  GitBranch,
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
 import {
   Sidebar,
   SidebarContent,
@@ -31,6 +34,7 @@ const navigation = [
   { name: 'Sources', href: '/sources', icon: Rss },
   { name: 'Drafts', href: '/drafts', icon: FileText },
   { name: 'Delivery', href: '/delivery', icon: Send },
+  { name: 'Workflow', href: '/workflow', icon: GitBranch },
   { name: 'Voice Training', href: '/voice-training', icon: Sparkles },
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
@@ -39,6 +43,7 @@ export function CreatorSidebar() {
   const { state, setOpen } = useSidebar();
   const location = useLocation();
   const collapsed = state === 'collapsed';
+  const { user, signOut } = useAuth();
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -73,10 +78,9 @@ export function CreatorSidebar() {
                     <NavLink
                       to={item.href}
                       className={({ isActive: navActive }) =>
-                        `flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 ${
-                          navActive || isActive(item.href)
-                            ? 'bg-sidebar-accent text-sidebar-primary border border-sidebar-primary/20'
-                            : 'text-white hover:bg-sidebar-accent/50 hover:text-white'
+                        `flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 ${navActive || isActive(item.href)
+                          ? 'bg-sidebar-accent text-sidebar-primary border border-sidebar-primary/20'
+                          : 'text-white hover:bg-sidebar-accent/50 hover:text-white'
                         }`
                       }
                     >
@@ -96,12 +100,19 @@ export function CreatorSidebar() {
             <div className="glass-card p-4">
               <div className="flex items-center space-x-3 mb-3">
                 <div className="w-8 h-8 rounded-full bg-creator-gradient flex items-center justify-center text-xs font-semibold text-primary-foreground">
-                  A
+                  {user?.email?.charAt(0).toUpperCase() || 'A'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-card-foreground truncate">Alex Creator</p>
+                  <p className="text-sm font-medium text-card-foreground truncate">{user?.email || 'Creator'}</p>
                   <p className="text-xs text-muted-foreground">Pro Plan</p>
                 </div>
+                <button
+                  onClick={signOut}
+                  className="p-1.5 hover:bg-red-500/20 text-muted-foreground hover:text-red-400 rounded-md transition-colors"
+                  title="Log out"
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
               </div>
               <div className="w-full bg-muted rounded-full h-1.5">
                 <div className="bg-creator-gradient h-1.5 rounded-full w-3/4"></div>

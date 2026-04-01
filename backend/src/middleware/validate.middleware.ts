@@ -34,6 +34,8 @@ export const generateContentSchema = z.object({
     topic: z.string().min(1, 'Topic is required').max(500),
     description: z.string().min(1, 'Description is required').max(5000),
     source_url: z.string().url().optional().nullable(),
+    hook_text: z.string().optional().nullable(),
+    angle: z.string().optional().nullable(),
     keywords: z.array(z.string()).max(20).default([]),
     voice_samples: z.array(z.string().max(3000)).max(10).default([]),
     content_type: z.enum(['linkedin_short', 'linkedin_long']).default('linkedin_short'),
@@ -47,6 +49,7 @@ export type GenerateContentInput = z.infer<typeof generateContentSchema>;
 
 export const publishContentSchema = z.object({
     content: z.string().min(1, 'Content is required').max(3000),
+    draft_id: z.string().uuid().optional().nullable(),
 });
 
 export type PublishContentInput = z.infer<typeof publishContentSchema>;

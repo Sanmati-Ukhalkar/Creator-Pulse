@@ -21,8 +21,49 @@ class GenerateRequest(BaseModel):
     """Request body for content generation."""
     trend: TrendInput
     voice_samples: list[str] = Field(default=[], max_length=10)
+    hook_text: Optional[str] = None
     content_type: ContentType = ContentType.LINKEDIN_SHORT
     platform: str = "linkedin"
+
+
+class AnalyzeTrendsRequest(BaseModel):
+    """Request body for trend analysis."""
+    raw_texts: list[str] = Field(..., min_length=1)
+
+
+class TopicResult(BaseModel):
+    """A topic identified by the AI."""
+    topic: str
+    description: str
+    keywords: list[str] = []
+    score: int
+
+
+class AnalyzeTrendsResponse(BaseModel):
+    """Response containing identified trends."""
+    topics: list[TopicResult]
+    tokens_consumed: int = 0
+    processing_time_ms: int = 0
+
+
+class GenerateHooksRequest(BaseModel):
+    """Request body for hook generation."""
+    trend: TrendInput
+    angle: Optional[str] = None
+    voice_samples: list[str] = Field(default=[], max_length=10)
+
+
+class HookResult(BaseModel):
+    """A generated hook and reasoning."""
+    hook: str
+    reasoning: str
+
+
+class GenerateHooksResponse(BaseModel):
+    """Response body containing generated hooks."""
+    hooks: list[HookResult]
+    tokens_consumed: int = 0
+    processing_time_ms: int = 0
 
 
 class EngagementPrediction(BaseModel):

@@ -16,9 +16,11 @@ import Settings from "./pages/Settings";
 import VoiceTraining from "./pages/VoiceTraining";
 import Intelligence from "./pages/Intelligence";
 import TrendDetails from "./pages/TrendDetails";
+import Workflow from "./pages/Workflow";
 import { AppLayout } from "./components/layout/AppLayout";
 import { ErrorBoundary } from "./components/layout/ErrorBoundary";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { EngineMonitor } from "./components/monitor/EngineMonitor";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +30,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        <EngineMonitor />
         <BrowserRouter>
           <ErrorBoundary>
             <Routes>
@@ -47,6 +50,7 @@ const App = () => (
                 <Route path="/delivery" element={<AppLayout><Delivery /></AppLayout>} />
                 <Route path="/voice-training" element={<AppLayout><VoiceTraining /></AppLayout>} />
                 <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
+                <Route path="/workflow" element={<AppLayout><Workflow /></AppLayout>} />
               </Route>
 
               {/* Catch-all */}

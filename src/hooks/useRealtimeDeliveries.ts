@@ -1,63 +1,54 @@
-
-import { useEffect } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
-import { supabase } from '@/integrations/supabase/client'
+import { useEffect, useRef } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { api } from '@/lib/api'
 import { useAuth } from '@/hooks/useAuth'
 import { toast } from 'sonner'
 
 export const useRealtimeDeliveries = () => {
   const queryClient = useQueryClient()
   const { user } = useAuth()
+  const lastStatusRef = useRef<string | null>(null)
+
+  // Poll for delivery status every 10 seconds
+  const { data: latestDelivery } = useQuery({
+    queryKey: ['delivery-status-polling', user?.id],
+    queryFn: async () => {
+      const { data } = await api.get('/delivery/status');
+      return data && data.length > 0 ? data[0] : null;
+    },
+    enabled: !!user,
+    refetchInterval: 10000,
+    notifyOnChangeProps: ['data'] // Only re-render if data changes
+  });
 
   useEffect(() => {
-    if (!user) return
+    if (!latestDelivery) return;
 
-    console.log('Setting up realtime subscription for delivery updates...')
+    const currentStatus = latestDelivery.status;
+    const lastStatus = lastStatusRef.current;
 
-    const channel = supabase
-      .channel('delivery-updates')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'delivery_schedules',
-          filter: `user_id=eq.${user.id}`
-        },
-        (payload) => {
-          console.log('Delivery update received:', payload)
-          
-          // Invalidate relevant queries to refresh data
-          queryClient.invalidateQueries({ queryKey: ['delivery-schedules'] })
-          queryClient.invalidateQueries({ queryKey: ['delivery-queue'] })
-          queryClient.invalidateQueries({ queryKey: ['delivery-analytics'] })
+    // If status changed (and it's not the first load)
+    if (lastStatus && currentStatus !== lastStatus) {
+      console.log('Delivery status changed:', lastStatus, '->', currentStatus);
 
-          // Show toast notifications for status changes
-          if (payload.eventType === 'UPDATE' && payload.new && payload.old) {
-            const oldStatus = payload.old.status
-            const newStatus = payload.new.status
-            
-            if (oldStatus !== newStatus) {
-              switch (newStatus) {
-                case 'sent':
-                  toast.success('Content delivered successfully!')
-                  break
-                case 'failed':
-                  toast.error('Content delivery failed')
-                  break
-                case 'processing':
-                  toast.info('Processing content delivery...')
-                  break
-              }
-            }
-          }
-        }
-      )
-      .subscribe()
+      // Invalidate relevant queries
+      queryClient.invalidateQueries({ queryKey: ['delivery-schedules'] })
+      queryClient.invalidateQueries({ queryKey: ['delivery-queue'] })
+      queryClient.invalidateQueries({ queryKey: ['delivery-analytics'] })
 
-    return () => {
-      console.log('Cleaning up realtime subscription')
-      supabase.removeChannel(channel)
+      switch (currentStatus) {
+        case 'sent':
+          toast.success('Content delivered successfully!')
+          break
+        case 'failed':
+          toast.error('Content delivery failed')
+          break
+        case 'processing':
+          toast.info('Processing content delivery...')
+          break
+      }
     }
-  }, [user, queryClient])
+
+    lastStatusRef.current = currentStatus;
+  }, [latestDelivery, queryClient]);
 }

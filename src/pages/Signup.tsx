@@ -14,10 +14,15 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 const signupSchema = z.object({
   firstName: z.string().min(2, 'First name must be at least 2 characters'),
   lastName: z.string().min(2, 'Last name must be at least 2 characters'),
-  email: z.string().email('Please enter a valid email address'),
+  email: z
+    .string()
+    .email('Please enter a valid email address')
+    .refine((v) => EMAIL_REGEX.test(v), { message: 'Email must include @ and a domain (e.g. name@example.com)' }),
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 
@@ -148,6 +153,7 @@ export default function SignupPage() {
                       {...register('email')}
                       placeholder="john@example.com"
                       className="pl-10"
+                      pattern="[^\s@]+@[^\s@]+\.[^\s@]{2,}"
                     />
                   </div>
                   {errors.email && (

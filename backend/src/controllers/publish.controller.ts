@@ -49,11 +49,21 @@ export const publishController = {
             );
 
             // 4. Log the published post
-            await pool.query(
+            const pubPost = await pool.query(
                 `INSERT INTO published_posts (user_id, platform, platform_post_id, content, published_at, status)
-                 VALUES ($1, $2, $3, $4, $5, $6)`,
+                 VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
                 [userId, 'linkedin', result.id, content, new Date().toISOString(), 'published']
             );
+
+            // 5. Update the Draft if a draft_id was provided
+            if (req.body.draft_id) {
+                await pool.query(
+                    `UPDATE drafts 
+                     SET status = 'published', upstream_id = $1, upstream_status = 'live', updated_at = NOW()
+                     WHERE id = $2 AND user_id = $3`,
+                    [result.id, req.body.draft_id, userId]
+                );
+            }
 
             logger.info('Post published to LinkedIn', {
                 userId,

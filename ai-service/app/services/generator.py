@@ -8,14 +8,53 @@ from app.models.schemas import (
     GenerateRequest,
     GenerateResponse,
     EngagementPrediction,
+    AnalyzeTrendsRequest,
+    AnalyzeTrendsResponse,
+    GenerateHooksRequest,
+    GenerateHooksResponse,
 )
 from app.services.article_scraper import scrape_article
 
 logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════
-# LinkedIn Prompt Templates
+# Prompt Templates
 # ═══════════════════════════════════════════
+
+TREND_ANALYSIS_PROMPT = """You are an expert content strategist and trend analyst.
+Analyze the following recent articles, news, and social media posts. Identify 3 to 5 distinct, emerging trends or high-value topics for content creation.
+
+RAW CONTENT:
+{raw_texts}
+
+REQUIREMENTS:
+1. Group similar news items into a single coherent trend.
+2. Provide a catchy, concise 'topic' title for each.
+3. Write a 1-2 sentence description of what the trend is and why it matters.
+4. Extract 3-5 relevant keywords.
+5. Assign a 'score' (1-100) based on virality potential.
+
+OUTPUT FORMAT (respond in valid JSON only, no markdown):
+{{"topics": [{{"topic": "The exact topic title", "description": "Brief description", "keywords": ["key1", "key2"], "score": 85}}]}}"""
+
+
+HOOK_GENERATION_PROMPT = """You are an elite copywriter and social media strategist known for viral hooks.
+Generate 5 distinct, highly-engaging first lines (hooks) for a post about the following topic.
+
+TRENDING TOPIC: {topic}
+TOPIC DESCRIPTION: {description}
+SPECIFIC ANGLE/FOCUS: {angle}
+
+VOICE STYLE SAMPLES (match this tone and style):
+{voice_samples}
+
+REQUIREMENTS:
+1. Each hook must use a different psychological angle (e.g., Bold Claim, Pattern Interrupt, Curiosity Gap, Personal Story, Contrarian View).
+2. Keep them short and punchy.
+3. Provide a brief reasoning explaining why this specific hook will capture attention.
+
+OUTPUT FORMAT (respond in valid JSON only, no markdown):
+{{"hooks": [{{"hook": "The exact hook text", "reasoning": "Why this works"}}]}}"""
 
 LINKEDIN_SHORT_PROMPT = """You are a LinkedIn content strategist who creates viral, engaging posts.
 Generate a short LinkedIn post (under 300 words) based on the trending topic.
@@ -23,12 +62,13 @@ Generate a short LinkedIn post (under 300 words) based on the trending topic.
 TRENDING TOPIC: {topic}
 TOPIC DESCRIPTION: {description}
 SOURCE ARTICLE SUMMARY: {article_content}
+CHOSEN HOOK: {hook_text}
 
 VOICE STYLE SAMPLES (match this tone and style):
 {voice_samples}
 
 REQUIREMENTS:
-1. Start with a strong hook — the first line MUST grab attention (pattern interrupt, bold claim, or question)
+1. You MUST start the post EXACTLY with the CHOSEN HOOK. Do not alter it.
 2. Use short paragraphs (1-2 sentences each)
 3. Add line breaks between paragraphs for readability
 4. Include a clear call-to-action at the end (question, ask for opinion, etc.)
@@ -39,7 +79,7 @@ REQUIREMENTS:
 9. Use emojis sparingly (1-3 max)
 
 OUTPUT FORMAT (respond in valid JSON only, no markdown):
-{{"content": "The full post text with line breaks", "hook": "The first attention-grabbing line", "hashtags": ["#tag1", "#tag2", "#tag3"]}}"""
+{{"content": "The full post text with line breaks", "hook": "The CHOSEN HOOK", "hashtags": ["#tag1", "#tag2", "#tag3"]}}"""
 
 LINKEDIN_LONG_PROMPT = """You are a LinkedIn thought leader who creates in-depth, valuable content.
 Generate a long-form LinkedIn post (500-800 words) based on the trending topic.
@@ -47,12 +87,13 @@ Generate a long-form LinkedIn post (500-800 words) based on the trending topic.
 TRENDING TOPIC: {topic}
 TOPIC DESCRIPTION: {description}
 SOURCE ARTICLE SUMMARY: {article_content}
+CHOSEN HOOK: {hook_text}
 
 VOICE STYLE SAMPLES (match this tone and style):
 {voice_samples}
 
 REQUIREMENTS:
-1. Start with a compelling hook that creates curiosity
+1. You MUST start the post EXACTLY with the CHOSEN HOOK. Do not alter it.
 2. Structure with clear sections and transitions
 3. Include personal insights, observations, or lessons learned
 4. Use real-world examples or analogies to illustrate points
@@ -64,7 +105,7 @@ REQUIREMENTS:
 10. Include a "TL;DR" or key takeaway
 
 OUTPUT FORMAT (respond in valid JSON only, no markdown):
-{{"content": "The full post text with line breaks", "hook": "The first attention-grabbing line", "hashtags": ["#tag1", "#tag2", "#tag3"]}}"""
+{{"content": "The full post text with line breaks", "hook": "The CHOSEN HOOK", "hashtags": ["#tag1", "#tag2", "#tag3"]}}"""
 
 
 async def generate_linkedin_content(request: GenerateRequest) -> GenerateResponse:
@@ -117,6 +158,8 @@ async def generate_linkedin_content(request: GenerateRequest) -> GenerateRespons
 
     logger.info(f"Generating {request.content_type.value} content for: {request.trend.topic}")
 
+    hook_text = request.hook_text if request.hook_text else "A strong attention grabbing hook."
+
     result = await chain.ainvoke(
         {
             "topic": request.trend.topic,
@@ -124,23 +167,17 @@ async def generate_linkedin_content(request: GenerateRequest) -> GenerateRespons
             "article_content": article_data.get(
                 "content", "No article content available."
             ),
+            "hook_text": hook_text,
             "voice_samples": voice_text,
         }
     )
 
     # Step 5: Parse LLM response
     try:
-        # Try to extract JSON from the response
-        response_text = result.content.strip()
-        # Handle case where LLM wraps JSON in markdown code blocks
-        if response_text.startswith("```"):
-            response_text = response_text.split("```")[1]
-            if response_text.startswith("json"):
-                response_text = response_text[4:]
-            response_text = response_text.strip()
-
-        parsed = json.loads(response_text)
-    except json.JSONDecodeError:
+        parsed = _parse_json_response(result.content)
+        if not parsed:
+            raise ValueError("Empty JSON parsed")
+    except Exception:
         logger.warning("LLM returned non-JSON response, using raw content")
         parsed = {
             "content": result.content,
@@ -172,6 +209,97 @@ async def generate_linkedin_content(request: GenerateRequest) -> GenerateRespons
             confidence=0.6,
         ),
         ai_model_version=settings.OPENAI_MODEL,
+        tokens_consumed=tokens,
+        processing_time_ms=processing_time,
+    )
+
+
+def _parse_json_response(content: str) -> dict:
+    """Helper to safely parse JSON from LLM response."""
+    try:
+        response_text = content.strip()
+        if response_text.startswith("```"):
+            response_text = response_text.split("```")[1]
+            if response_text.startswith("json"):
+                response_text = response_text[4:]
+            response_text = response_text.strip()
+        return json.loads(response_text)
+    except Exception as e:
+        logger.warning(f"Failed to parse LLM JSON: {e}")
+        return {}
+
+
+async def analyze_trends(request: AnalyzeTrendsRequest) -> AnalyzeTrendsResponse:
+    """Analyzes raw aggregated texts to identify distinct content topics."""
+    settings = get_settings()
+    start_time = time.time()
+    
+    prompt = ChatPromptTemplate.from_template(TREND_ANALYSIS_PROMPT)
+    llm = ChatOpenAI(
+        model=settings.OPENAI_MODEL,
+        api_key=settings.OPENAI_API_KEY,
+        temperature=0.4,
+    )
+    chain = prompt | llm
+    
+    raw_texts_combined = "\n\n---\n\n".join(request.raw_texts)
+    # Truncate to avoid massive token bills if there's too much data
+    if len(raw_texts_combined) > 20000:
+        raw_texts_combined = raw_texts_combined[:20000] + "\n[Content truncated...]"
+
+    logger.info(f"Analyzing trends from {len(request.raw_texts)} text blocks.")
+    
+    result = await chain.ainvoke({"raw_texts": raw_texts_combined})
+    parsed = _parse_json_response(result.content)
+    
+    topics = parsed.get("topics", [])
+    processing_time = int((time.time() - start_time) * 1000)
+    tokens = result.response_metadata.get("token_usage", {}).get("total_tokens", 0) if hasattr(result, "response_metadata") else 0
+    
+    return AnalyzeTrendsResponse(
+        topics=topics,
+        tokens_consumed=tokens,
+        processing_time_ms=processing_time,
+    )
+
+
+async def generate_hooks(request: GenerateHooksRequest) -> GenerateHooksResponse:
+    """Generates 5 distinct hooks for a given topic."""
+    settings = get_settings()
+    start_time = time.time()
+    
+    prompt = ChatPromptTemplate.from_template(HOOK_GENERATION_PROMPT)
+    llm = ChatOpenAI(
+        model=settings.OPENAI_MODEL,
+        api_key=settings.OPENAI_API_KEY,
+        temperature=0.8, # Higher temp for more creative hooks
+    )
+    chain = prompt | llm
+    
+    voice_text = "\n---\n".join(request.voice_samples) if request.voice_samples else "Professional and conversational."
+    angle = request.angle if request.angle else "General insightful observation."
+    
+    logger.info(f"Generating hooks for topic: {request.trend.topic}")
+    
+    result = await chain.ainvoke({
+        "topic": request.trend.topic,
+        "description": request.trend.description,
+        "angle": angle,
+        "voice_samples": voice_text,
+    })
+    
+    parsed = _parse_json_response(result.content)
+    hooks = parsed.get("hooks", [])
+    
+    # Fallback if parsing fails
+    if not hooks:
+        hooks = [{"hook": f"Why you need to care about {request.trend.topic}", "reasoning": "Fallback hook"}]
+        
+    processing_time = int((time.time() - start_time) * 1000)
+    tokens = result.response_metadata.get("token_usage", {}).get("total_tokens", 0) if hasattr(result, "response_metadata") else 0
+    
+    return GenerateHooksResponse(
+        hooks=hooks,
         tokens_consumed=tokens,
         processing_time_ms=processing_time,
     )

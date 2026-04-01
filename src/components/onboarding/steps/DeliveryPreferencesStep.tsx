@@ -55,25 +55,26 @@ const deliveryChannels = [
 
 const commonTimezones = [
   'America/New_York',
+  'America/Chicago',
   'America/Los_Angeles',
   'Europe/London',
   'Europe/Paris',
-  'Asia/Tokyo',
+  'Asia/Kolkata',
   'Asia/Singapore',
+  'Asia/Tokyo',
   'Australia/Sydney',
-  'America/Chicago',
 ];
 
 export function DeliveryPreferencesStep() {
-  const { 
-    deliveryPrefs, 
-    updateDeliveryPrefs, 
-    nextStep, 
-    prevStep, 
+  const {
+    deliveryPrefs,
+    updateDeliveryPrefs,
+    nextStep,
+    prevStep,
     completeOnboarding,
-    isLoading 
+    isLoading
   } = useOnboardingStore();
-  
+
   const navigate = useNavigate();
   const [isGeneratingFirstDraft, setIsGeneratingFirstDraft] = useState(false);
   const [firstDraftGenerated, setFirstDraftGenerated] = useState(false);
@@ -87,16 +88,16 @@ export function DeliveryPreferencesStep() {
 
   const onSubmit = async (data: DeliveryFormData) => {
     updateDeliveryPrefs(data);
-    
+
     // Generate first draft
     setIsGeneratingFirstDraft(true);
     await new Promise(resolve => setTimeout(resolve, 3000)); // Simulate API call
     setFirstDraftGenerated(true);
     setIsGeneratingFirstDraft(false);
-    
+
     // Complete onboarding
     await completeOnboarding();
-    
+
     // Redirect to dashboard after a brief delay to show success state
     setTimeout(() => {
       navigate('/dashboard');
@@ -153,11 +154,10 @@ export function DeliveryPreferencesStep() {
                         whileTap={{ scale: 0.98 }}
                       >
                         <Card
-                          className={`cursor-pointer transition-all duration-200 ${
-                            isSelected
+                          className={`cursor-pointer transition-all duration-200 ${isSelected
                               ? 'bg-cyan-500/20 border-cyan-500'
                               : 'bg-gray-800/30 border-gray-700 hover:border-gray-600'
-                          }`}
+                            }`}
                           onClick={() => field.onChange(time.value)}
                         >
                           <CardContent className="p-4 text-center">
@@ -206,21 +206,18 @@ export function DeliveryPreferencesStep() {
                         whileTap={{ scale: 0.98 }}
                       >
                         <Card
-                          className={`cursor-pointer transition-all duration-200 ${
-                            isSelected
+                          className={`cursor-pointer transition-all duration-200 ${isSelected
                               ? 'bg-violet-500/20 border-violet-500'
                               : 'bg-gray-800/30 border-gray-700 hover:border-gray-600'
-                          }`}
+                            }`}
                           onClick={() => field.onChange(freq.value)}
                         >
                           <CardContent className="p-4">
                             <div className="flex items-center">
-                              <div className={`p-2 rounded-lg mr-3 ${
-                                isSelected ? 'bg-violet-500/20' : 'bg-gray-700'
-                              }`}>
-                                <IconComponent className={`w-5 h-5 ${
-                                  isSelected ? 'text-violet-400' : 'text-gray-400'
-                                }`} />
+                              <div className={`p-2 rounded-lg mr-3 ${isSelected ? 'bg-violet-500/20' : 'bg-gray-700'
+                                }`}>
+                                <IconComponent className={`w-5 h-5 ${isSelected ? 'text-violet-400' : 'text-gray-400'
+                                  }`} />
                               </div>
                               <div>
                                 <h3 className="font-medium">{freq.label}</h3>
@@ -259,11 +256,10 @@ export function DeliveryPreferencesStep() {
                     whileTap={{ scale: 0.98 }}
                   >
                     <Card
-                      className={`cursor-pointer transition-all duration-200 ${
-                        isSelected
+                      className={`cursor-pointer transition-all duration-200 ${isSelected
                           ? 'bg-gray-700/50 border-gray-500'
                           : 'bg-gray-800/30 border-gray-700 hover:border-gray-600'
-                      }`}
+                        }`}
                       onClick={() => toggleChannel(channel.value)}
                     >
                       <CardContent className="p-4">
@@ -373,8 +369,8 @@ export function DeliveryPreferencesStep() {
           <Button type="button" variant="outline" onClick={prevStep} disabled={isGeneratingFirstDraft}>
             Back
           </Button>
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={isGeneratingFirstDraft || isLoading}
             className="bg-gradient-to-r from-cyan-600 to-violet-600 hover:from-cyan-700 hover:to-violet-700"
           >

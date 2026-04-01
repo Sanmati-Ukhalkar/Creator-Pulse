@@ -1,27 +1,32 @@
 import rateLimit from 'express-rate-limit';
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 /**
  * General Rate Limiter
- * 100 requests per 15 minutes per IP.
- * Applied globally to all routes.
+ * Dev: 1000 req / 15 min (effectively unlimited for local testing)
+ * Prod: 100 req / 15 min
  */
 export const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
+    windowMs: 15 * 60 * 1000,
+    max: isDev ? 1000 : 100,
     standardHeaders: true,
     legacyHeaders: false,
+    // Skip rate limiting for localhost in development
+    skip: (req) => isDev && (req.ip === '::1' || req.ip === '127.0.0.1' || req.ip === '::ffff:127.0.0.1'),
     message: { error: 'Too many requests. Please try again later.' },
 });
 
 /**
  * AI Generation Rate Limiter
- * 10 requests per 15 minutes per IP.
- * Applied specifically to AI content generation routes (Phase 2+).
+ * Dev: 50 req / 15 min
+ * Prod: 10 req / 15 min
  */
 export const aiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 10,
+    max: isDev ? 50 : 10,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => isDev && (req.ip === '::1' || req.ip === '127.0.0.1' || req.ip === '::ffff:127.0.0.1'),
     message: { error: 'AI generation rate limit reached. Try again in 15 minutes.' },
 });

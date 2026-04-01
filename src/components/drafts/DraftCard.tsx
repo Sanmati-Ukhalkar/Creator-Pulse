@@ -3,8 +3,10 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Edit, Calendar, Trash2, MoreVertical, Copy } from "lucide-react";
+import { Edit, Calendar, Trash2, MoreVertical, Copy, Heart, MessageCircle, RefreshCw, AlertCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 interface Draft {
   id: string;
@@ -24,6 +26,13 @@ interface Draft {
     };
     ai_suggestions?: string[];
   };
+  metrics?: {
+    likes?: number;
+    comments?: number;
+    shares?: number;
+    views?: number;
+  };
+  upstream_status?: string;
   status: string;
   scheduled_for?: string;
   created_at: string;
@@ -40,6 +49,30 @@ interface DraftCardProps {
 
 export function DraftCard({ draft, onEdit, onSchedule, onDelete, onDuplicate }: DraftCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [localMetrics, setLocalMetrics] = useState(draft.metrics);
+  const [localUpstreamStatus, setLocalUpstreamStatus] = useState(draft.upstream_status);
+
+  const handleSync = async () => {
+    try {
+      setIsSyncing(true);
+      const { data } = await api.post(`/analytics/sync/${draft.id}`);
+      if (data.success) {
+        setLocalMetrics(data.data.metrics);
+        setLocalUpstreamStatus(data.data.upstream_status);
+        toast.success("Metrics updated from LinkedIn!");
+      }
+    } catch (error: any) {
+      if (error.response?.data?.upstream_status === 'deleted') {
+         setLocalUpstreamStatus('deleted');
+         toast.error("This post was natively deleted on LinkedIn.");
+      } else {
+         toast.error(error.response?.data?.error || "Failed to sync metrics");
+      }
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const getPlatformColor = (platform: string) => {
     switch (platform) {
@@ -86,7 +119,7 @@ export function DraftCard({ draft, onEdit, onSchedule, onDelete, onDuplicate }: 
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
-            <div className={`w-3 h-3 rounded-full ${getPlatformColor(draft.platform)}`} />
+              <div className={`w-3 h-3 rounded-full ${getPlatformColor(draft.platform)}`} />
             <span className="text-sm font-medium capitalize">{draft.platform}</span>
             <Badge 
               variant="secondary" 
@@ -94,6 +127,11 @@ export function DraftCard({ draft, onEdit, onSchedule, onDelete, onDuplicate }: 
             >
               {draft.status}
             </Badge>
+            {localUpstreamStatus === 'deleted' && (
+              <Badge variant="destructive" className="text-[10px] px-1 group relative">
+                <AlertCircle className="w-3 h-3 mr-1"/> Deleted Upstream
+              </Badge>
+            )}
           </div>
           <div className="flex items-center space-x-1">
             <span className="text-xs text-muted-foreground">
@@ -176,8 +214,31 @@ export function DraftCard({ draft, onEdit, onSchedule, onDelete, onDuplicate }: 
             ) : null;
           })()}
 
-          {/* Performance prediction for LinkedIn */}
-          {draft.platform === 'linkedin' && draft.metadata.predicted_performance && (
+          {/* Analytics / Predicted Performance */}
+          {draft.status === 'published' ? (
+              <div className="bg-muted/30 rounded-lg p-3 border mt-2">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex space-x-4">
+                     <span className="flex items-center text-rose-500 font-medium bg-rose-500/10 px-2 py-1 rounded">
+                       <Heart className="w-3.5 h-3.5 mr-1" /> {localMetrics?.likes || 0}
+                     </span>
+                     <span className="flex items-center text-blue-500 font-medium bg-blue-500/10 px-2 py-1 rounded">
+                       <MessageCircle className="w-3.5 h-3.5 mr-1" /> {localMetrics?.comments || 0}
+                     </span>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-6 text-[10px] px-2 text-muted-foreground"
+                    onClick={handleSync}
+                    disabled={isSyncing || localUpstreamStatus === 'deleted'}
+                  >
+                    <RefreshCw className={`w-3 h-3 mr-1 ${isSyncing ? 'animate-spin' : ''}`} />
+                    Sync
+                  </Button>
+                </div>
+              </div>
+          ) : draft.platform === 'linkedin' && draft.metadata?.predicted_performance && (
             <div className="bg-muted/50 rounded-lg p-3 border">
               <div className="flex items-center space-x-4 text-xs">
                 <span className="text-muted-foreground">📊 Predicted:</span>
@@ -197,9 +258,8 @@ export function DraftCard({ draft, onEdit, onSchedule, onDelete, onDuplicate }: 
             <div className="flex space-x-2">
               <Button size="sm" variant="outline" onClick={() => onEdit(draft)}>
                 <Edit className="h-3 w-3 mr-1" />
-                Edit
+                {draft.status === 'published' ? 'View/Edit Notes' : 'Edit'}
               </Button>
-              
             </div>
             <Button 
               size="sm" 

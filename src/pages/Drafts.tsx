@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, LayoutGrid, List } from "lucide-react";
 import { DraftCard } from "@/components/drafts/DraftCard";
@@ -20,6 +20,13 @@ interface Draft {
   title?: string;
   content: any;
   metadata: any;
+  metrics?: {
+    likes?: number;
+    comments?: number;
+    shares?: number;
+    views?: number;
+  };
+  upstream_status?: string;
   status: string;
   scheduled_for?: string;
   created_at: string;
@@ -539,6 +546,7 @@ export default function Drafts() {
                 {editingDraft && editingDraft.platform === 'linkedin' && (
                   <DraftPublishButton
                     content={editText}
+                    draftId={editingDraft.id}
                     onSuccess={handlePublishSuccess}
                     disabled={!editText.trim()}
                   />

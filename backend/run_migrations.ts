@@ -8,7 +8,7 @@ const pool = new Pool({
 
 async function run() {
   const migrations = [
-    '008_topics.sql'
+    '009_delivery.sql'
   ];
 
   for (const file of migrations) {

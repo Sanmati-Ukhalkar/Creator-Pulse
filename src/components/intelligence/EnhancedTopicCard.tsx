@@ -1,21 +1,26 @@
-
 import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { TopicScheduleButton } from "./TopicScheduleButton";
-import { 
-  TrendingUp, 
-  Users, 
-  Calendar, 
-  Target, 
+import {
+  TrendingUp,
+  Users,
+  Calendar,
+  Target,
   Lightbulb,
   BarChart3,
   Hash,
   ExternalLink,
-  Sparkles
+  Sparkles,
 } from "lucide-react";
 
 interface Topic {
@@ -63,27 +68,31 @@ export function EnhancedTopicCard({
   onResearch,
   onGenerate,
   isResearching = false,
-  isGenerating = false
+  isGenerating = false,
 }: EnhancedTopicCardProps) {
   const [showFullDescription, setShowFullDescription] = useState(false);
 
   const getTopicTypeColor = (type?: string) => {
     const colors = {
-      'trending': 'bg-red-100 text-red-800',
-      'educational': 'bg-blue-100 text-blue-800',
-      'entertainment': 'bg-purple-100 text-purple-800',
-      'news': 'bg-green-100 text-green-800',
-      'business': 'bg-orange-100 text-orange-800'
+      trending: "bg-red-100 text-red-800",
+      educational: "bg-blue-100 text-blue-800",
+      entertainment: "bg-purple-100 text-purple-800",
+      news: "bg-green-100 text-green-800",
+      business: "bg-orange-100 text-orange-800",
     };
-    return colors[type as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[type as keyof typeof colors] || "bg-gray-100 text-gray-800";
   };
 
   const getCompetitionColor = (level?: string) => {
     switch (level) {
-      case 'low': return 'text-green-600';
-      case 'medium': return 'text-yellow-600';
-      case 'high': return 'text-red-600';
-      default: return 'text-gray-600';
+      case "low":
+        return "text-green-600";
+      case "medium":
+        return "text-yellow-600";
+      case "high":
+        return "text-red-600";
+      default:
+        return "text-gray-600";
     }
   };
 
@@ -95,19 +104,21 @@ export function EnhancedTopicCard({
           Trending
         </div>
       )}
-      
+
       <CardHeader className="space-y-4">
         <div className="space-y-2">
           <CardTitle className="text-lg leading-tight">{topic.title}</CardTitle>
           {topic.description && (
-            <CardDescription className={`${!showFullDescription && topic.description.length > 150 ? 'line-clamp-2' : ''}`}>
+            <CardDescription
+              className={`${!showFullDescription && topic.description.length > 150 ? "line-clamp-2" : ""}`}
+            >
               {topic.description}
               {topic.description.length > 150 && (
                 <button
                   onClick={() => setShowFullDescription(!showFullDescription)}
                   className="text-primary hover:underline ml-2 text-sm"
                 >
-                  {showFullDescription ? 'Show less' : 'Show more'}
+                  {showFullDescription ? "Show less" : "Show more"}
                 </button>
               )}
             </CardDescription>
@@ -121,7 +132,7 @@ export function EnhancedTopicCard({
             </Badge>
           )}
           <Badge variant="outline">
-            Score: {(topic.confidence_score * 100).toFixed(0)}%
+            Score: {topic.confidence_score}%
           </Badge>
           {topic.keywords.slice(0, 3).map((keyword) => (
             <Badge key={keyword} variant="secondary" className="text-xs">
@@ -139,9 +150,9 @@ export function EnhancedTopicCard({
               <Target className="h-4 w-4 text-muted-foreground" />
               <span className="text-sm font-medium">Confidence</span>
             </div>
-            <Progress value={topic.confidence_score * 100} className="h-2" />
+            <Progress value={topic.confidence_score} className="h-2" />
             <span className="text-xs text-muted-foreground mt-1 block">
-              {(topic.confidence_score * 100).toFixed(0)}% match
+              {topic.confidence_score}% match
             </span>
           </div>
           <div>
@@ -167,59 +178,78 @@ export function EnhancedTopicCard({
                     <Lightbulb className="h-4 w-4" />
                     Summary
                   </h4>
-                  <p className="text-sm text-muted-foreground">{research.summary}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {research.summary}
+                  </p>
                 </div>
               )}
 
               {/* Key Stats */}
-              {research.key_stats && Object.keys(research.key_stats).length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
-                    Key Stats
-                  </h4>
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    {research.key_stats.engagement_rate && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Engagement:</span>
-                        <span className="font-medium">{research.key_stats.engagement_rate}%</span>
-                      </div>
-                    )}
-                    {research.key_stats.potential_reach && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Reach:</span>
-                        <span className="font-medium">{research.key_stats.potential_reach.toLocaleString()}</span>
-                      </div>
-                    )}
-                    {research.key_stats.competition_level && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Competition:</span>
-                        <span className={`font-medium capitalize ${getCompetitionColor(research.key_stats.competition_level)}`}>
-                          {research.key_stats.competition_level}
-                        </span>
-                      </div>
-                    )}
+              {research.key_stats &&
+                Object.keys(research.key_stats).length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4" />
+                      Key Stats
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      {research.key_stats.engagement_rate && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Engagement:
+                          </span>
+                          <span className="font-medium">
+                            {research.key_stats.engagement_rate}%
+                          </span>
+                        </div>
+                      )}
+                      {research.key_stats.potential_reach && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Reach:</span>
+                          <span className="font-medium">
+                            {research.key_stats.potential_reach.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      {research.key_stats.competition_level && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">
+                            Competition:
+                          </span>
+                          <span
+                            className={`font-medium capitalize ${getCompetitionColor(research.key_stats.competition_level)}`}
+                          >
+                            {research.key_stats.competition_level}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Content Angles */}
-              {research.content_angles && research.content_angles.length > 0 && (
-                <div>
-                  <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Content Angles
-                  </h4>
-                  <div className="space-y-1">
-                    {research.content_angles.slice(0, 3).map((angle, index) => (
-                      <div key={index} className="text-xs text-muted-foreground flex items-start gap-2">
-                        <span className="text-primary">•</span>
-                        <span>{angle}</span>
-                      </div>
-                    ))}
+              {research.content_angles &&
+                research.content_angles.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                      <Sparkles className="h-4 w-4" />
+                      Content Angles
+                    </h4>
+                    <div className="space-y-1">
+                      {research.content_angles
+                        .slice(0, 3)
+                        .map((angle, index) => (
+                          <div
+                            key={index}
+                            className="text-xs text-muted-foreground flex items-start gap-2"
+                          >
+                            <span className="text-primary">•</span>
+                            <span>{angle}</span>
+                          </div>
+                        ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Hashtags */}
               {research.hashtags && research.hashtags.length > 0 && (
@@ -230,7 +260,11 @@ export function EnhancedTopicCard({
                   </h4>
                   <div className="flex flex-wrap gap-1">
                     {research.hashtags.slice(0, 6).map((hashtag) => (
-                      <Badge key={hashtag} variant="outline" className="text-xs">
+                      <Badge
+                        key={hashtag}
+                        variant="outline"
+                        className="text-xs"
+                      >
                         #{hashtag}
                       </Badge>
                     ))}
@@ -254,7 +288,7 @@ export function EnhancedTopicCard({
               {isResearching ? "Researching..." : "Research"}
             </Button>
           )}
-          
+
           {onGenerate && (
             <Button
               variant="outline"
@@ -266,10 +300,7 @@ export function EnhancedTopicCard({
             </Button>
           )}
 
-          <TopicScheduleButton 
-            topicId={topic.id}
-            topicTitle={topic.title}
-          />
+          <TopicScheduleButton topicId={topic.id} topicTitle={topic.title} />
         </div>
       </CardContent>
     </Card>

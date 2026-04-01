@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import pool from '../config/database';
 import { logger } from '../utils/logger';
+import { linkedinService } from '../services/linkedin.service';
 
 export const draftsController = {
     /**
@@ -98,17 +99,39 @@ export const draftsController = {
             const userId = req.user!.id;
             const { id } = req.params;
 
-            const result = await pool.query(
-                'DELETE FROM drafts WHERE user_id = $1 AND id = $2 RETURNING id',
+            // Get the draft to see if it has a native post linked to it
+            const draftResult = await pool.query(
+                'SELECT upstream_id FROM drafts WHERE user_id = $1 AND id = $2',
                 [userId, id]
             );
 
-            if (result.rowCount === 0) {
+            if (draftResult.rowCount === 0) {
                 res.status(404).json({ error: 'Draft not found or unauthorized' });
                 return;
             }
 
-            res.json({ message: 'Draft deleted successfully' });
+            const { upstream_id } = draftResult.rows[0];
+
+            // If it's published to LinkedIn, delete it natively first
+            if (upstream_id) {
+                try {
+                    const token = await linkedinService.getValidToken(userId);
+                    await linkedinService.deletePost(token, upstream_id);
+                    logger.info('Successfully deleted post natively from LinkedIn', { upstream_id });
+                } catch (linkedinErr: any) {
+                    logger.error('Failed to natively delete post from LinkedIn', { error: linkedinErr.message, upstream_id });
+                    res.status(500).json({ error: 'Failed to delete the post natively on LinkedIn. The local draft was kept.' });
+                    return;
+                }
+            }
+
+            // Delete the local reference
+            await pool.query(
+                'DELETE FROM drafts WHERE user_id = $1 AND id = $2',
+                [userId, id]
+            );
+
+            res.json({ message: 'Post permanently deleted from local drafts and LinkedIn' });
         } catch (error: any) {
             logger.error('Error deleting draft', { error: error.message });
             res.status(500).json({ error: 'Failed to delete draft' });

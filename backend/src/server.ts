@@ -19,7 +19,10 @@ import trendsRoutes from './routes/trends.routes';
 import researchRoutes from './routes/research.routes';
 import topicsRoutes from './routes/topics.routes';
 import ingestedContentRoutes from './routes/ingested_content.routes';
+import deliveryRoutes from './routes/delivery.routes';
+import analyticsRoutes from './routes/analytics.routes';
 import { schedulerService } from './services/scheduler.service';
+import { analyticsWorker } from './services/analytics.worker';
 
 const app = express();
 
@@ -62,6 +65,8 @@ app.use('/api/trends', trendsRoutes);
 app.use('/api/research', researchRoutes);
 app.use('/api/topics', topicsRoutes);
 app.use('/api/ingested-contents', ingestedContentRoutes);
+app.use('/api/delivery', deliveryRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 // Temporary test route — verifies auth middleware is working
 app.get('/api/me', authMiddleware, (req, res) => {
@@ -91,6 +96,9 @@ const server = app.listen(env.PORT, () => {
 
     // Initialize Scheduler Cron Job
     schedulerService.init();
+
+    // Initialize Analytics Background Polling (Runs Hourly)
+    analyticsWorker.init();
 
     logger.info(`🔧 Environment: ${env.NODE_ENV}`);
 });

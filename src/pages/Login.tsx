@@ -13,9 +13,14 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
+  email: z
+    .string()
+    .email('Please enter a valid email address')
+    .refine((v) => EMAIL_REGEX.test(v), { message: 'Email must include @ and a domain (e.g. name@example.com)' }),
+  password: z.string().min(1, 'Password is required'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -147,6 +152,7 @@ const LoginPage: React.FC = () => {
                           placeholder="Enter your email address"
                           autoComplete="email"
                           {...field}
+                          pattern="[^\s@]+@[^\s@]+\.[^\s@]{2,}"
                           className="focus:ring-2 focus:ring-cyan-400 focus:border-cyan-400 transition-all duration-200 bg-[#111111]/80 border-[#27272A] text-white placeholder:text-gray-500"
                           aria-label="Email address"
                         />

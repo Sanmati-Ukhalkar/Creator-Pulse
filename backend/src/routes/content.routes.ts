@@ -26,6 +26,19 @@ router.post(
 );
 
 /**
+ * POST /api/generate/hooks
+ *
+ * Generate 3-5 distinct hooks for a topic
+ */
+router.post(
+    '/generate/hooks',
+    authMiddleware,
+    aiLimiter,
+    validate(generateContentSchema), // Using same schema for topic validation
+    generateController.generateHooks
+);
+
+/**
  * POST /api/publish
  *
  * Publish content directly to LinkedIn.

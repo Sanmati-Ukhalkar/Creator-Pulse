@@ -70,12 +70,18 @@ export function ProfileSetupStep() {
 
   const selectedPlatforms = watch('platforms') || [];
 
-  const onSubmit = (data: ProfileFormData) => {
+  const onSubmit = async (data: ProfileFormData) => {
     console.log('[Onboarding] Form submitted with data:', data);
-    console.log('[Onboarding] Current step before nextStep:', useOnboardingStore.getState().currentStep);
-    updateProfileData(data);
-    nextStep();
-    console.log('[Onboarding] Current step after nextStep:', useOnboardingStore.getState().currentStep);
+    try {
+      useOnboardingStore.getState().setLoading(true);
+      updateProfileData(data);
+      await useOnboardingStore.getState().saveProgress();
+      nextStep();
+    } catch (error) {
+      console.error('[Onboarding] Failed to save progress:', error);
+    } finally {
+      useOnboardingStore.getState().setLoading(false);
+    }
   };
 
   // Debug: log any validation errors

@@ -18,12 +18,14 @@ const steps = [
 
 export function OnboardingFlow() {
   const { currentStep, setStep } = useOnboardingStore();
-  const [searchParams] = useSearchParams();
-  
-  // Handle step parameter from URL (coming from signup)
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Handle step parameter from URL and sync it
   useEffect(() => {
     const stepParam = searchParams.get('step');
-    if (stepParam) {
+
+    // Initial load: set state from URL
+    if (stepParam && currentStep === 1) {
       const step = parseInt(stepParam);
       if (step >= 2 && step <= 5) {
         setStep(step);
@@ -31,9 +33,12 @@ export function OnboardingFlow() {
     } else if (currentStep === 1) {
       // If no step parameter and we're on step 1, start from step 2
       setStep(2);
+    } else if (currentStep > 1 && parseInt(stepParam || "1") !== currentStep) {
+      // Sync URL to match our new step
+      setSearchParams({ step: currentStep.toString() }, { replace: true });
     }
-  }, [searchParams, setStep, currentStep]);
-  
+  }, [currentStep, searchParams, setStep, setSearchParams]);
+
   const progress = ((currentStep - 1) / steps.length) * 100;
 
   const renderStep = () => {
@@ -77,7 +82,7 @@ export function OnboardingFlow() {
                 Step {currentStep - 1} of {steps.length}
               </div>
             </div>
-            
+
             {/* Progress Bar */}
             <div className="space-y-2">
               <Progress value={progress} className="h-2" />
@@ -85,17 +90,15 @@ export function OnboardingFlow() {
                 {steps.map((step, index) => (
                   <div
                     key={step.id}
-                    className={`flex flex-col items-center ${
-                      step.id <= currentStep ? 'text-cyan-400' : 'text-gray-500'
-                    }`}
+                    className={`flex flex-col items-center ${step.id <= currentStep ? 'text-cyan-400' : 'text-gray-500'
+                      }`}
                   >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium mb-1 ${
-                      step.id < currentStep 
-                        ? 'bg-emerald-500 text-white'
-                        : step.id === currentStep
-                          ? 'bg-cyan-500 text-white'
-                          : 'bg-gray-700 text-gray-400'
-                    }`}>
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium mb-1 ${step.id < currentStep
+                      ? 'bg-emerald-500 text-white'
+                      : step.id === currentStep
+                        ? 'bg-cyan-500 text-white'
+                        : 'bg-gray-700 text-gray-400'
+                      }`}>
                       {step.id < currentStep ? '✓' : index + 1}
                     </div>
                     <span className="font-medium">{step.title}</span>

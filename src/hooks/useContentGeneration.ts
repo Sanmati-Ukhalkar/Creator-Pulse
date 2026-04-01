@@ -9,6 +9,14 @@ export interface GenerateContentParams {
   contentType: string; // 'text_post' -> mapped to 'linkedin_short'
   keywords?: string[];
   voiceSamples?: string[];
+  hookText?: string;
+}
+
+export interface GenerateHooksParams {
+  topic: string;
+  description: string;
+  angle?: string;
+  voiceSamples?: string[];
 }
 
 export const useContentGeneration = () => {
@@ -32,6 +40,7 @@ export const useContentGeneration = () => {
         content_type: backendContentType,
         keywords: params.keywords || [],
         voice_samples: params.voiceSamples || [],
+        hook_text: params.hookText,
         source_url: null,
       };
 
@@ -52,11 +61,37 @@ export const useContentGeneration = () => {
     }
   })
 
+  const generateHooks = useMutation({
+    mutationFn: async (params: GenerateHooksParams) => {
+      console.log('Generating hooks via Backend API:', params)
+      const payload = {
+        topic: params.topic,
+        description: params.description || `Write a post about ${params.topic}`,
+        angle: params.angle,
+        voice_samples: params.voiceSamples || [],
+      };
+      const { data } = await api.post('/generate/hooks', payload);
+      return data;
+    },
+    onSuccess: (response) => {
+      toast.success('Hooks generated successfully!')
+      return response;
+    },
+    onError: (error: any) => {
+      console.error('Hook generation mutation error:', error)
+      toast.error(error.response?.data?.error || 'Failed to generate hooks')
+    }
+  })
+
   return {
     generateContent: generateContent.mutate,
     generateContentAsync: generateContent.mutateAsync, // Export async version for awaiting result
     isGenerating: generateContent.isPending,
     generationError: generateContent.error,
-    generatedResult: generateContent.data // Expose data to component
+    generatedResult: generateContent.data, // Expose data to component
+
+    // Hook generator specifically
+    generateHooksAsync: generateHooks.mutateAsync,
+    isGeneratingHooks: generateHooks.isPending,
   }
 }

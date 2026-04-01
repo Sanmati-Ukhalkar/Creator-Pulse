@@ -259,4 +259,87 @@ export const linkedinService = {
             throw new Error(`LinkedIn post failed: ${message}`);
         }
     },
+
+    /**
+     * Fetch social metrics (likes, comments) for a given post URN.
+     * Throws 'POST_DELETED' if the post no longer exists.
+     */
+    async getPostMetrics(accessToken: string, urn: string): Promise<{ likes: number; comments: number }> {
+        // 1. Verify the post actually still exists and scrape REAL metrics directly from HTML.
+        // We use the public embed endpoint because the main API returns a 403 Scope Error 
+        // even if the post is deleted, which masks the 404, and blocks reading real metrics natively.
+        let scrapedLikes = 0;
+        let scrapedComments = 0;
+
+        try {
+            const embedRes = await axios.get(`https://www.linkedin.com/embed/feed/update/${encodeURIComponent(urn)}`);
+            const html = embedRes.data;
+
+            // Extract using generic regex to bypass API auth blocks
+            const likesMatch = html.match(/"numLikes":(\d+)/i) || html.match(/>([\d,]+)\s+Likes?</i) || html.match(/([\d,]+)\s+Reactions?/i);
+            const commentsMatch = html.match(/"numComments":(\d+)/i) || html.match(/>([\d,]+)\s+Comments?</i) || html.match(/([\d,]+)\s+Comments?/i);
+
+            if (likesMatch) scrapedLikes = parseInt(likesMatch[1].replace(/,/g, ''), 10) || 0;
+            if (commentsMatch) scrapedComments = parseInt(commentsMatch[1].replace(/,/g, ''), 10) || 0;
+
+        } catch (embedError: any) {
+            if (embedError.response?.status === 404) {
+                logger.info('Post detected as natively deleted via embed check', { urn });
+                throw new Error('POST_DELETED');
+            }
+        }
+
+        // 2. Try fetching actual metrics if we somehow gained Marketing Developer permission 
+        try {
+            const response = await axios.get(`https://api.linkedin.com/v2/socialActions/${encodeURIComponent(urn)}`, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'X-Restli-Protocol-Version': '2.0.0',
+                },
+            });
+
+            return {
+                likes: response.data.likesSummary?.totalLikes || 0,
+                comments: response.data.commentsSummary?.totalFirstLevelComments || 0,
+            };
+        } catch (error: any) {
+            const status = error.response?.status;
+            if (status === 404) {
+                throw new Error('POST_DELETED');
+            }
+            if (status === 403) {
+                logger.info(`Returning scraped metrics for ${urn} due to API 403 restriction`, { scrapedLikes, scrapedComments });
+                return {
+                    likes: scrapedLikes,
+                    comments: scrapedComments,
+                };
+            }
+            logger.error('Failed to fetch post metrics from LinkedIn', { urn, error: error.message });
+            throw error;
+        }
+    },
+
+    /**
+     * Delete a native LinkedIn post using its URN.
+     */
+    async deletePost(accessToken: string, urn: string): Promise<boolean> {
+        try {
+            // Attempt standard share deletion
+            const endpoint = urn.includes('ugcPost') ? 'ugcPosts' : 'shares';
+            await axios.delete(`https://api.linkedin.com/v2/${endpoint}/${encodeURIComponent(urn)}`, {
+                headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    'X-Restli-Protocol-Version': '2.0.0',
+                },
+            });
+            return true;
+        } catch (error: any) {
+            const status = error.response?.status;
+            if (status === 404) {
+                 return true; // Already deleted
+            }
+            logger.error('Failed to delete LinkedIn post', { urn, message: error.response?.data?.message || error.message });
+            throw new Error(`Failed to forcefully delete post: ${error.message}`);
+        }
+    },
 };

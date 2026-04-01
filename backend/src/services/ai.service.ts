@@ -10,8 +10,48 @@ interface GenerateRequest {
         keywords?: string[];
     };
     voice_samples: string[];
+    hook_text?: string;
     content_type: 'linkedin_short' | 'linkedin_long';
     platform: string;
+}
+
+export interface AnalyzeTrendsRequest {
+    raw_texts: string[];
+}
+
+export interface TopicResult {
+    topic: string;
+    description: string;
+    keywords: string[];
+    score: number;
+}
+
+export interface AnalyzeTrendsResponse {
+    topics: TopicResult[];
+    tokens_consumed: number;
+    processing_time_ms: number;
+}
+
+export interface GenerateHooksRequest {
+    trend: {
+        topic: string;
+        description: string;
+        source_url?: string;
+        keywords?: string[];
+    };
+    angle?: string;
+    voice_samples: string[];
+}
+
+export interface HookResult {
+    hook: string;
+    reasoning: string;
+}
+
+export interface GenerateHooksResponse {
+    hooks: HookResult[];
+    tokens_consumed: number;
+    processing_time_ms: number;
 }
 
 interface GenerateResponse {
@@ -75,6 +115,60 @@ export const aiService = {
                 throw new Error(`Invalid request to AI service: ${detail}`);
             }
 
+            throw new Error(`AI service error: ${detail}`);
+        }
+    },
+
+    async analyzeTrends(request: AnalyzeTrendsRequest): Promise<AnalyzeTrendsResponse> {
+        try {
+            logger.info('Calling AI service for trend analysis', { textCount: request.raw_texts.length });
+
+            const response = await axios.post<AnalyzeTrendsResponse>(
+                `${env.AI_SERVICE_URL}/analyze-trends`,
+                request,
+                {
+                    headers: {
+                        'X-API-Key': env.AI_SERVICE_KEY || '',
+                        'Content-Type': 'application/json',
+                    },
+                    timeout: 120000, // 120s — analysis of multiple texts can take long
+                }
+            );
+
+            logger.info('AI service responded with trends', { topicsCount: response.data.topics.length });
+            return response.data;
+        } catch (error: any) {
+            const status = error.response?.status;
+            const detail = error.response?.data?.detail || error.message;
+
+            logger.error('AI service trend analysis failed', { status, detail });
+            throw new Error(`AI service error: ${detail}`);
+        }
+    },
+
+    async generateHooks(request: GenerateHooksRequest): Promise<GenerateHooksResponse> {
+        try {
+            logger.info('Calling AI service for hook generation', { topic: request.trend.topic });
+
+            const response = await axios.post<GenerateHooksResponse>(
+                `${env.AI_SERVICE_URL}/generate-hooks`,
+                request,
+                {
+                    headers: {
+                        'X-API-Key': env.AI_SERVICE_KEY || '',
+                        'Content-Type': 'application/json',
+                    },
+                    timeout: 60000,
+                }
+            );
+
+            logger.info('AI service responded with hooks', { hooksCount: response.data.hooks.length });
+            return response.data;
+        } catch (error: any) {
+            const status = error.response?.status;
+            const detail = error.response?.data?.detail || error.message;
+
+            logger.error('AI service hook generation failed', { status, detail });
             throw new Error(`AI service error: ${detail}`);
         }
     },
