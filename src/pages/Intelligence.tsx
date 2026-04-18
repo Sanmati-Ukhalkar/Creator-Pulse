@@ -31,13 +31,7 @@ const Intelligence = () => {
 
   const trendingCount = topics.filter(topic => topic.is_trending).length;
 
-  if (error) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-destructive">Error loading topics: {error.message}</p>
-      </div>
-    );
-  }
+  // Removed early return on error to ensure full UI is visible for presentation
 
   return (
     <div className="space-y-6">

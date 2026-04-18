@@ -7,46 +7,19 @@ export interface User {
 }
 
 export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>({
+    id: "demo-guest-123",
+    email: "guest@creatorpulse.com"
+  });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem('auth_token');
-      if (!token) {
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const { data } = await api.get('/auth/me');
-        setUser(data.user);
-      } catch (error) {
-        console.error('Failed to validate session', error);
-        localStorage.removeItem('auth_token');
-        setUser(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-
-    // Listen to storage events to support multi-tab logout (optional but nice)
-    const handleStorageChange = (e: StorageEvent) => {
-      if (e.key === 'auth_token' && !e.newValue) {
-        setUser(null);
-      }
-    };
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => window.removeEventListener('storage', handleStorageChange);
+    // Presentation Mode: Skipping backend validation to present freely
   }, []);
 
   const signOut = () => {
-    localStorage.removeItem('auth_token');
     setUser(null);
-    window.location.href = '/login'; // Or use navigate if accessible
+    window.location.href = '/login'; 
   };
 
   return {
