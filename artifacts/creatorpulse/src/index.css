@@ -1,0 +1,186 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* CreatorPulse Design System - Premium Creator-Focused Interface */
+
+@layer base {
+  :root {
+    /* Creator-focused dark theme foundation */
+    --background: 220 13% 4%;
+    --foreground: 0 0% 98%;
+
+    --card: 220 13% 7%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 220 13% 7%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 193 100% 50%;
+    --primary-foreground: 220 13% 4%;
+
+    --secondary: 220 13% 9%;
+    --secondary-foreground: 0 0% 90%;
+
+    --muted: 220 13% 9%;
+    --muted-foreground: 0 0% 65%;
+
+    --accent: 262 83% 58%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 220 13% 15%;
+    --input: 220 13% 12%;
+    --ring: 193 100% 50%;
+
+    --radius: 0.75rem;
+
+    /* Creator brand colors */
+    --creator-cyan: 193 100% 50%;
+    --creator-violet: 262 83% 58%;
+    --creator-emerald: 142 71% 45%;
+    --creator-orange: 25 95% 53%;
+
+    /* Glass morphism backgrounds */
+    --glass-primary: 220 13% 9% / 0.6;
+    --glass-secondary: 220 13% 12% / 0.4;
+    --glass-accent: 193 100% 50% / 0.1;
+
+    /* Gradient definitions */
+    --gradient-creator-primary: linear-gradient(135deg, hsl(var(--creator-cyan)), hsl(var(--creator-violet)));
+    --gradient-creator-secondary: linear-gradient(135deg, hsl(var(--creator-violet)), hsl(var(--creator-emerald)));
+    --gradient-glass: linear-gradient(135deg, hsl(var(--glass-primary)), hsl(var(--glass-secondary)));
+
+    /* Animation durations */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+
+    /* Shadows for depth */
+    --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    --shadow-glow: 0 0 40px hsl(var(--creator-cyan) / 0.3);
+    --shadow-creator: 0 20px 40px -12px hsl(var(--creator-cyan) / 0.25);
+
+    /* Sidebar specific */
+    --sidebar-background: 220 13% 6%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 193 100% 50%;
+    --sidebar-primary-foreground: 220 13% 4%;
+    --sidebar-accent: 220 13% 10%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 220 13% 12%;
+    --sidebar-ring: 193 100% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground overflow-x-hidden;
+  }
+
+  /* Animated background elements */
+  .creator-orb {
+    @apply absolute rounded-full opacity-20 animate-pulse;
+    background: var(--gradient-creator-primary);
+    filter: blur(40px);
+  }
+
+  .floating-particles {
+    @apply absolute inset-0 pointer-events-none overflow-hidden;
+  }
+}
+
+@layer components {
+  /* Glass morphism utilities */
+  .glass-card {
+    @apply backdrop-blur-xl rounded-2xl border border-white/10;
+    background: linear-gradient(135deg, 
+      hsl(var(--glass-primary)), 
+      hsl(var(--glass-secondary))
+    );
+    box-shadow: var(--shadow-glass);
+  }
+
+  .glass-button {
+    @apply backdrop-blur-md rounded-xl border border-white/20 transition-all duration-300;
+    background: linear-gradient(135deg, 
+      hsl(var(--glass-primary)), 
+      hsl(var(--glass-secondary))
+    );
+  }
+
+  .glass-button:hover {
+    @apply border-primary/40 scale-105;
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Creator-specific components */
+  .creator-gradient {
+    background: var(--gradient-creator-primary);
+  }
+
+  .creator-gradient-secondary {
+    background: var(--gradient-creator-secondary);
+  }
+
+  .creator-text-gradient {
+    background: var(--gradient-creator-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Interactive elements */
+  .hover-lift {
+    @apply transition-all duration-300 hover:scale-105 hover:-translate-y-1;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300;
+  }
+
+  .hover-glow:hover {
+    box-shadow: var(--shadow-glow);
+  }
+
+  /* Animation keyframes */
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(180deg); }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { 
+      opacity: 0.5;
+      transform: scale(1);
+    }
+    50% { 
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  }
+
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-pulse-glow {
+    animation: pulse-glow 3s ease-in-out infinite;
+  }
+
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+  }
+}
