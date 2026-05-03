@@ -13,7 +13,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
       [userId]
     );
     res.json(result.rows);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error fetching sources");
     res.status(500).json({ error: "Failed to fetch sources" });
   }
@@ -30,7 +30,7 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
       [userId, source_type, source_name, source_url, source_config ? JSON.stringify(source_config) : null]
     );
     res.status(201).json(result.rows[0]);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error creating source");
     res.status(500).json({ error: "Failed to create source" });
   }
@@ -58,7 +58,7 @@ router.patch("/:id", authMiddleware, async (req: Request, res: Response) => {
     }
 
     res.json(result.rows[0]);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error updating source");
     res.status(500).json({ error: "Failed to update source" });
   }
@@ -77,7 +77,7 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
       return;
     }
     res.json({ message: "Source deleted successfully" });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error deleting source");
     res.status(500).json({ error: "Failed to delete source" });
   }

@@ -39,7 +39,7 @@ router.post("/register", async (req: Request, res: Response): Promise<void> => {
 
     logger.info({ userId: user.id }, "User registered");
     res.status(201).json({ user: { id: user.id, email: user.email }, token });
-  } catch (err: any) {
+  } catch (err) {
     if (err instanceof z.ZodError) {
       res.status(400).json({ error: err.errors });
       return;
@@ -69,7 +69,7 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
     const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET!, { expiresIn: "7d" });
     logger.info({ userId: user.id }, "User logged in");
     res.json({ user: { id: user.id, email: user.email }, token });
-  } catch (err: any) {
+  } catch (err) {
     if (err instanceof z.ZodError) {
       res.status(400).json({ error: err.errors });
       return;
@@ -81,7 +81,7 @@ router.post("/login", async (req: Request, res: Response): Promise<void> => {
 
 router.get("/me", authMiddleware, async (req: Request, res: Response): Promise<void> => {
   try {
-    const userId = (req as any).user?.id;
+    const userId = req.user?.id;
     if (!userId) {
       res.status(401).json({ error: "Not authenticated" });
       return;

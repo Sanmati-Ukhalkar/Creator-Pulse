@@ -19,7 +19,7 @@ router.post("/sync/:draftId", async (req: Request, res: Response) => {
       return;
     }
     res.status(501).json({ error: "LinkedIn analytics sync requires LinkedIn OAuth configuration." });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Failed to sync analytics");
     res.status(500).json({ error: "Failed to sync analytics." });
   }

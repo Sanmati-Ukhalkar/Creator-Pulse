@@ -13,7 +13,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
       [userId]
     );
     res.json(result.rows);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error listing trends");
     res.status(500).json({ error: "Failed to list trends" });
   }
@@ -32,7 +32,7 @@ router.get("/:id", authMiddleware, async (req: Request, res: Response) => {
       return;
     }
     res.json(result.rows[0]);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error fetching trend");
     res.status(500).json({ error: "Failed to fetch trend" });
   }
@@ -55,7 +55,7 @@ router.post("/trigger", authMiddleware, async (req: Request, res: Response) => {
       trend: result.rows[0],
       message: "Trend research queued"
     });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error triggering trend research");
     res.status(500).json({ error: "Failed to trigger trend research" });
   }

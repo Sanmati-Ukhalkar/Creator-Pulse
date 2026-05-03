@@ -21,7 +21,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
       sources: { source_name: row.source_name, source_type: row.source_type }
     }));
     res.json(data);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error listing ingested content");
     res.status(500).json({ error: "Failed to list content" });
   }
@@ -44,7 +44,7 @@ router.get("/:id", authMiddleware, async (req: Request, res: Response) => {
     }
     const row = result.rows[0];
     res.json({ ...row, sources: { source_name: row.source_name, source_type: row.source_type } });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error fetching content");
     res.status(500).json({ error: "Failed to fetch content" });
   }

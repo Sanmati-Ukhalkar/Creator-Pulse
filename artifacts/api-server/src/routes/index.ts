@@ -12,6 +12,9 @@ import linkedinRouter from "./linkedin";
 import analyticsRouter from "./analytics";
 import researchRouter from "./research";
 import aiStatusRouter from "./ai-status";
+import scheduleRouter from "./schedule";
+import generateRouter from "./generate";
+import scraperRouter from "./scraper";
 
 const router: IRouter = Router();
 
@@ -28,5 +31,8 @@ router.use("/linkedin", linkedinRouter);
 router.use("/analytics", analyticsRouter);
 router.use("/research", researchRouter);
 router.use("/ai-status", aiStatusRouter);
+router.use("/schedule", scheduleRouter);
+router.use("/generate", generateRouter);
+router.use("/scraper", scraperRouter);
 
 export default router;

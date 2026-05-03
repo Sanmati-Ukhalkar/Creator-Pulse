@@ -17,7 +17,7 @@ router.get("/settings", authMiddleware, async (req: Request, res: Response) => {
       return;
     }
     res.json(result.rows[0]);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error fetching delivery settings");
     res.status(500).json({ error: "Failed to fetch settings" });
   }
@@ -40,7 +40,7 @@ router.put("/settings", authMiddleware, async (req: Request, res: Response) => {
       [userId, delivery_time || "09:00", frequency || "daily", channels || ["email"], timezone || "UTC"]
     );
     res.json(result.rows[0]);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error updating delivery settings");
     res.status(500).json({ error: "Failed to update settings" });
   }
@@ -57,7 +57,7 @@ router.get("/status", authMiddleware, async (req: Request, res: Response) => {
       configured: result.rowCount! > 0,
       settings: result.rowCount! > 0 ? result.rows[0] : null
     });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error fetching delivery status");
     res.status(500).json({ error: "Failed to fetch delivery status" });
   }

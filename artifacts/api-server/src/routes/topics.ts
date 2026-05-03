@@ -26,7 +26,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
     query += " ORDER BY trend_score DESC NULLS LAST";
     const result = await pool.query(query, params);
     res.json(result.rows);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error fetching topics");
     res.status(500).json({ error: "Failed to fetch topics" });
   }
@@ -43,7 +43,7 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
       [userId, title, description, keywords || [], trend_score || 0, confidence_score || 0, is_trending || false, topic_type]
     );
     res.json(result.rows[0]);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error creating topic");
     res.status(500).json({ error: "Failed to create topic" });
   }

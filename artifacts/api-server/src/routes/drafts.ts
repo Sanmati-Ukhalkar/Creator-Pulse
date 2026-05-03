@@ -13,7 +13,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
       [userId]
     );
     res.json(result.rows);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error fetching drafts");
     res.status(500).json({ error: "Failed to fetch drafts" });
   }
@@ -30,7 +30,7 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
       [userId, platform, content_type, title, JSON.stringify(content), metadata ? JSON.stringify(metadata) : null, status || "draft"]
     );
     res.status(201).json(result.rows[0]);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error creating draft");
     res.status(500).json({ error: "Failed to create draft" });
   }
@@ -68,7 +68,7 @@ router.put("/:id", authMiddleware, async (req: Request, res: Response) => {
     }
 
     res.json(result.rows[0]);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error updating draft");
     res.status(500).json({ error: "Failed to update draft" });
   }
@@ -87,7 +87,7 @@ router.delete("/:id", authMiddleware, async (req: Request, res: Response) => {
       return;
     }
     res.json({ message: "Draft deleted successfully" });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error deleting draft");
     res.status(500).json({ error: "Failed to delete draft" });
   }

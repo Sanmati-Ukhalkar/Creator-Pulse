@@ -13,7 +13,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
       [userId]
     );
     res.json(result.rowCount === 0 ? {} : result.rows[0]);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error fetching profile");
     res.status(500).json({ error: "Failed to fetch profile" });
   }
@@ -38,7 +38,7 @@ router.put("/", authMiddleware, async (req: Request, res: Response) => {
       [userId, full_name, email, industry, creator_type, platforms, timezone]
     );
     res.json(result.rows[0]);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error updating profile");
     res.status(500).json({ error: "Failed to update profile" });
   }
@@ -88,7 +88,7 @@ router.post("/onboarding", authMiddleware, async (req: Request, res: Response) =
     } finally {
       client.release();
     }
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Error completing onboarding");
     res.status(500).json({ error: "Failed to complete onboarding" });
   }

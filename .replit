@@ -22,8 +22,6 @@ timeoutMs = 20000
 [userenv]
 
 [userenv.shared]
-JWT_SECRET = "cee50a0aac7d90cf8229af9b53b58fffe16dbe4db19515f18727b7e0a2ae10a3fba9f23d07fbbf62d41a294a087ce3fe"
-ENCRYPTION_KEY = "5e9dcf67114d084b9457d68cabf042129da9b3e9604692f152d8128d0a9d2d3a"
 NODE_ENV = "development"
 AI_SERVICE_URL = "http://localhost:8000"
 

@@ -11,7 +11,7 @@ router.post("/topic", authMiddleware, async (req: Request, res: Response) => {
     const { topic_id, depth_level } = req.body;
     logger.info({ userId, topic_id, depth_level }, "Topic research triggered (stub)");
     res.json({ success: true, message: "Research queued (stub)", cached: false });
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Research error");
     res.status(500).json({ error: "Failed to conduct research" });
   }
@@ -21,7 +21,7 @@ router.get("/topic/:topicId", authMiddleware, async (req: Request, res: Response
   try {
     const { topicId } = req.params;
     res.json(null);
-  } catch (err: any) {
+  } catch (err) {
     logger.error({ err }, "Get topic research error");
     res.status(500).json({ error: "Failed to get topic research" });
   }
