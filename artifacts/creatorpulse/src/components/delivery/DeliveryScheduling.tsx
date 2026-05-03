@@ -84,7 +84,7 @@ export function DeliveryScheduling() {
 
     const scheduledFor = getNextOccurrenceIso();
     const recurringConfig = {
-      frequency: "weekly",
+      frequency: "weekly" as "daily" | "weekly",
       weeklySchedules: schedules,
       timezone: selectedTimezone,
     };

@@ -15,7 +15,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
 
     if (status) {
       query += " AND status = $2";
-      params.push(status);
+      params.push(String(status));
     }
 
     query += " ORDER BY scheduled_at ASC";
@@ -66,7 +66,7 @@ router.put("/:id", authMiddleware, async (req: Request, res: Response) => {
     }
 
     fields.push(`updated_at = NOW()`);
-    values.push(userId, id);
+    values.push(String(userId), String(id));
 
     const result = await pool.query(
       `UPDATE scheduled_posts SET ${fields.join(", ")} WHERE user_id = $${idx++} AND id = $${idx++} RETURNING *`,

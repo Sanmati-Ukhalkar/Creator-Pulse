@@ -57,7 +57,7 @@ router.put("/:id", authMiddleware, async (req: Request, res: Response) => {
     }
 
     fields.push(`updated_at = NOW()`);
-    values.push(userId, id);
+    values.push(String(userId), String(id));
 
     const query = `UPDATE drafts SET ${fields.join(", ")} WHERE user_id = $${idx++} AND id = $${idx++} RETURNING *`;
     const result = await pool.query(query, values);

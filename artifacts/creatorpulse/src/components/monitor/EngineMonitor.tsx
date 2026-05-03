@@ -528,7 +528,7 @@ function DataTab({ data, emptyMsg, columns }: { data: unknown[]; emptyMsg: strin
   );
 }
 
-function LogsTab({ logs, logsEndRef }: { logs: LogEntry[]; logsEndRef: React.RefObject<HTMLDivElement> }) {
+function LogsTab({ logs, logsEndRef }: { logs: LogEntry[]; logsEndRef: React.RefObject<HTMLDivElement | null> }) {
   const levelColor = { info: "#64748b", warn: "#f59e0b", error: "#ef4444" };
 
   return (

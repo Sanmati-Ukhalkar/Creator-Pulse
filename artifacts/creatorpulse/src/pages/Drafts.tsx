@@ -93,7 +93,7 @@ export default function Drafts() {
       filtered = filtered.filter(draft =>
         draft.content.text?.toLowerCase().includes(query) ||
         draft.title?.toLowerCase().includes(query) ||
-        draft.content.hashtags?.some(tag => tag.toLowerCase().includes(query))
+        draft.content.hashtags?.some((tag: string) => tag.toLowerCase().includes(query))
       );
     }
 

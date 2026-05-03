@@ -49,6 +49,7 @@ export const useTopicResearchData = (topicId: string, enabled = false) => {
       // Transform the Json types to proper objects
       return {
         ...data,
+        summary: data.summary ?? undefined,
         key_stats: typeof data.key_stats === 'string'
           ? JSON.parse(data.key_stats)
           : (data.key_stats || {}),

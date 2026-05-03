@@ -6,7 +6,7 @@ import { ChannelPreview } from "@/components/delivery/ChannelPreview";
 import { Mail, MessageCircle, Settings, Eye, BarChart3 } from "lucide-react";
 
 export function DeliveryChannels() {
-  const [activeChannels, setActiveChannels] = useState({
+  const [activeChannels, setActiveChannels] = useState<Record<string, boolean>>({
     email: true,
     whatsapp: false
   });

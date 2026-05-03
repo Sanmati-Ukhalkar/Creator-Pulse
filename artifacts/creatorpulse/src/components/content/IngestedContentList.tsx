@@ -29,7 +29,7 @@ export const IngestedContentList = () => {
 
   return (
     <div className="space-y-4">
-      {content.map((item) => (
+      {content.map((item: any) => (
         <Card key={item.id} className="hover:shadow-md transition-shadow">
           <CardHeader className="pb-3">
             <div className="flex items-start justify-between">

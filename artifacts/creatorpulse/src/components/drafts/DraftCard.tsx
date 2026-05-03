@@ -197,7 +197,7 @@ export function DraftCard({ draft, onEdit, onSchedule, onDelete, onDuplicate }: 
             let hashtags: string[] = [];
             if (Array.isArray(raw)) hashtags = raw;
             else if (typeof raw === 'string') {
-              hashtags = raw.split(/[,#\s]+/).map(t => t.trim()).filter(Boolean);
+              hashtags = (raw as string).split(/[,#\s]+/).map((t: string) => t.trim()).filter(Boolean);
             }
             return hashtags.length > 0 ? (
             <div className="flex flex-wrap gap-1">

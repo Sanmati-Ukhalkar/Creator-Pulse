@@ -36,7 +36,7 @@ interface Topic {
 }
 
 interface TopicResearch {
-  summary?: string;
+  summary?: string | null;
   content_angles: string[];
   hashtags: string[];
   key_stats: {

@@ -202,8 +202,8 @@ const Intelligence = () => {
           </DialogHeader>
           <ContentGenerationForm
             topicId={genTopicId}
-            topicTitle={topics.find(t => t.id === genTopicId)?.title}
-            topicDescription={topics.find(t => t.id === genTopicId)?.description}
+            topicTitle={topics.find(t => t.id === genTopicId)?.title ?? undefined}
+            topicDescription={topics.find(t => t.id === genTopicId)?.description ?? undefined}
             onSuccess={() => setGenOpen(false)}
           />
         </DialogContent>
