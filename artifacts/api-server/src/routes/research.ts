@@ -19,10 +19,11 @@ router.post("/topic", authMiddleware, async (req: Request, res: Response) => {
 
 router.get("/topic/:topicId", authMiddleware, async (req: Request, res: Response) => {
   try {
+    const userId = req.user!.id;
     const { topicId } = req.params;
     const result = await pool.query(
-      `SELECT * FROM trend_research WHERE id = $1`,
-      [topicId]
+      `SELECT * FROM trend_research WHERE id = $1 AND user_id = $2`,
+      [topicId, userId]
     );
     res.json(result.rows[0] ?? null);
   } catch (err) {

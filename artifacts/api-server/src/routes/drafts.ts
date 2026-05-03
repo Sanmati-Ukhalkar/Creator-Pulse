@@ -43,7 +43,7 @@ router.put("/:id", authMiddleware, async (req: Request, res: Response) => {
     const { title, content, status, metadata } = req.body;
 
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: (string | number | boolean | null)[] = [];
     let idx = 1;
 
     if (title !== undefined) { fields.push(`title = $${idx++}`); values.push(title); }

@@ -11,7 +11,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
     const { status } = req.query;
 
     let query = "SELECT * FROM scheduled_posts WHERE user_id = $1";
-    const params: any[] = [userId];
+    const params: (string | number | boolean | null)[] = [userId];
 
     if (status) {
       query += " AND status = $2";
@@ -52,7 +52,7 @@ router.put("/:id", authMiddleware, async (req: Request, res: Response) => {
     const { platform, content, scheduled_at, status } = req.body;
 
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: (string | number | boolean | null)[] = [];
     let idx = 1;
 
     if (platform !== undefined) { fields.push(`platform = $${idx++}`); values.push(platform); }

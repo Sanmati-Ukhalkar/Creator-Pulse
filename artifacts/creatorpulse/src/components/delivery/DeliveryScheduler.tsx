@@ -52,25 +52,7 @@ export function DeliveryScheduler() {
     sunday: []
   });
 
-  // Mock scheduled deliveries for demonstration
-  const [scheduledDeliveries] = useState<ScheduledDelivery[]>([
-    {
-      id: "1",
-      date: new Date(),
-      time: "09:00",
-      platform: "linkedin",
-      contentType: "post",
-      status: "scheduled"
-    },
-    {
-      id: "2",
-      date: addDays(new Date(), 1),
-      time: "14:00",
-      platform: "twitter",
-      contentType: "post",
-      status: "pending_approval"
-    }
-  ]);
+  const [scheduledDeliveries] = useState<ScheduledDelivery[]>([]);
 
   const platforms: Array<{ id: DeliveryPlatform; name: string; color: string }> = [
     { id: "linkedin", name: "LinkedIn", color: "bg-blue-100 text-blue-800" },

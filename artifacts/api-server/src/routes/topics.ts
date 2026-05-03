@@ -11,7 +11,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
     const { date } = req.query;
 
     let query = "SELECT * FROM topics WHERE user_id = $1";
-    const params: any[] = [userId];
+    const params: (string | number | boolean | null)[] = [userId];
 
     if (date) {
       const dateObj = new Date(date as string);

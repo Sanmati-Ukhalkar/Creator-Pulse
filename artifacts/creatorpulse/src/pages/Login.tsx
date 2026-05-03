@@ -62,10 +62,6 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleGuest = () => {
-    navigate('/dashboard'); // Guest flow: redirect to dashboard
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#0A0A0B] relative">
       <AnimatedBackground />
@@ -204,13 +200,6 @@ const LoginPage: React.FC = () => {
               </form>
             </Form>
             <div className="flex flex-col items-center mt-4 space-y-2">
-              <button
-                onClick={handleGuest}
-                className="text-cyan-400 hover:underline text-sm font-medium focus:outline-none"
-                tabIndex={0}
-              >
-                Continue as Guest
-              </button>
               <a
                 href="#"
                 className="text-gray-400 hover:text-cyan-400 text-xs mt-2 focus:underline focus:outline-none"
