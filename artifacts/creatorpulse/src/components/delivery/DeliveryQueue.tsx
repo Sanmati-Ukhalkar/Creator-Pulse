@@ -18,7 +18,7 @@ import {
   Trash2
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
-import { useDeliveryQueue, useDeliveryScheduler } from "@/hooks/useDeliveryScheduler";
+import { useDeliveryQueue, useDeliveryScheduler, type DeliveryPlatform, type DeliveryContentType } from "@/hooks/useDeliveryScheduler";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
@@ -222,7 +222,7 @@ export function DeliveryQueue() {
                             {item.platform}
                           </Badge>
                           <Badge variant="outline">{item.content_type}</Badge>
-                          <Badge variant={getStatusBadge(item.status) as any}>
+                          <Badge variant={getStatusBadge(item.status) as "default" | "secondary" | "destructive" | "outline"}>
                             {item.status}
                           </Badge>
                         </div>
@@ -265,7 +265,7 @@ export function DeliveryQueue() {
                             updateScheduledDelivery({
                               scheduleId: item.id,
                               scheduledFor: dt.toISOString(),
-                              status: 'scheduled' as any,
+                              status: 'scheduled',
                             })
                           }}
                         >
@@ -383,8 +383,8 @@ export function DeliveryQueue() {
                 dt.setHours(parseInt(hh), parseInt(mm), 0, 0)
                 updateScheduledDelivery({
                   scheduleId: editingId,
-                  platform: editPlatform as any,
-                  contentType: editContentType as any,
+                  platform: editPlatform as DeliveryPlatform,
+                  contentType: editContentType as DeliveryContentType,
                   scheduledFor: dt.toISOString(),
                 })
                 setEditingId(null)

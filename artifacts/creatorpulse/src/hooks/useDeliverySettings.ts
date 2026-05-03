@@ -44,9 +44,8 @@ export const useDeliverySettings = (userId: string) => {
       toast.success('Delivery settings updated successfully')
       queryClient.invalidateQueries({ queryKey: ['delivery-settings', userId] })
     },
-    onError: (error) => {
-      console.error('Settings update error:', error)
-      toast.error(`Failed to update settings: ${(error as any).message || 'Unknown error'}`)
+    onError: (error: Error) => {
+      toast.error(`Failed to update settings: ${error.message || 'Unknown error'}`)
     }
   })
 

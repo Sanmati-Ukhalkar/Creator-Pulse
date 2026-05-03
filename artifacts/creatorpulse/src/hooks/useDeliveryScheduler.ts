@@ -42,26 +42,26 @@ export interface DeliverySchedule {
   draft_id?: string
   auto_generate: boolean
   custom_prompt?: string
-  recurring_config?: any
+  recurring_config?: Record<string, unknown>
   created_at: string
   updated_at: string
   drafts?: {
     title?: string
-    content?: any
+    content?: unknown
   }
 }
 
-const mapBackendToFrontend = (item: any): DeliverySchedule => {
+const mapBackendToFrontend = (item: Record<string, unknown>): DeliverySchedule => {
   return {
-    id: item.id,
-    user_id: item.user_id,
-    platform: item.platform,
-    content_type: 'post', // Default as backend doesn't store this yet
-    scheduled_for: item.scheduled_at,
-    status: item.status,
+    id: item.id as string,
+    user_id: item.user_id as string,
+    platform: item.platform as DeliveryPlatform,
+    content_type: (item.content_type as DeliveryContentType) || 'post',
+    scheduled_for: item.scheduled_at as string,
+    status: item.status as DeliveryStatus,
     auto_generate: false,
-    created_at: item.created_at || new Date().toISOString(),
-    updated_at: item.updated_at || new Date().toISOString(),
+    created_at: (item.created_at as string) || new Date().toISOString(),
+    updated_at: (item.updated_at as string) || new Date().toISOString(),
     drafts: {
       title: 'Scheduled Post',
       content: item.content
@@ -74,8 +74,6 @@ export const useDeliveryScheduler = () => {
 
   const scheduleDelivery = useMutation({
     mutationFn: async (params: ScheduleDeliveryParams) => {
-      console.log('Scheduling delivery:', params)
-
       const { data } = await api.post('/schedule', {
         platform: params.platform,
         scheduled_at: params.scheduledFor,
@@ -90,8 +88,7 @@ export const useDeliveryScheduler = () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-schedules'] })
       queryClient.invalidateQueries({ queryKey: ['delivery-queue'] })
     },
-    onError: (error: any) => {
-      console.error('Scheduling error:', error)
+    onError: (error: Error) => {
       toast.error(`Failed to schedule delivery: ${error.message}`)
     }
   })
@@ -106,15 +103,20 @@ export const useDeliveryScheduler = () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-schedules'] })
       queryClient.invalidateQueries({ queryKey: ['delivery-queue'] })
     },
-    onError: (error: any) => {
-      console.error('Cancellation error:', error)
+    onError: (error: Error) => {
       toast.error(`Failed to cancel delivery: ${error.message}`)
     }
   })
 
   const updateScheduledDelivery = useMutation({
     mutationFn: async (params: UpdateDeliveryParams) => {
-      const { data } = await api.put(`/schedule/${params.scheduleId}`, params);
+      const payload: Record<string, unknown> = {};
+      if (params.platform !== undefined) payload.platform = params.platform;
+      if (params.scheduledFor !== undefined) payload.scheduled_at = params.scheduledFor;
+      if (params.content !== undefined) payload.content = params.content;
+      if (params.status !== undefined) payload.status = params.status;
+
+      const { data } = await api.put(`/schedule/${params.scheduleId}`, payload);
       return mapBackendToFrontend(data.data);
     },
     onSuccess: () => {
@@ -122,8 +124,7 @@ export const useDeliveryScheduler = () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-schedules'] })
       queryClient.invalidateQueries({ queryKey: ['delivery-queue'] })
     },
-    onError: (error: any) => {
-      console.error('Update error:', error)
+    onError: (error: Error) => {
       toast.error(`Failed to update delivery: ${error.message}`)
     }
   })
@@ -135,8 +136,7 @@ export const useDeliveryScheduler = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-queue'] })
     },
-    onError: (error: any) => {
-      console.error('Processor error:', error)
+    onError: (error: Error) => {
       toast.error(`Processor failed: ${error.message}`)
     }
   })
@@ -159,7 +159,7 @@ export const useDeliverySchedules = (userId: string) => {
     queryKey: ['delivery-schedules', userId],
     queryFn: async (): Promise<DeliverySchedule[]> => {
       const { data: response } = await api.get('/schedule');
-      const items = response.data || [];
+      const items = (response.data || []) as Record<string, unknown>[];
       return items.map(mapBackendToFrontend);
     },
     enabled: !!userId
@@ -170,11 +170,11 @@ export const useDeliveryQueue = (userId: string) => {
   return useQuery({
     queryKey: ['delivery-queue', userId],
     queryFn: async () => {
-      const { data: response } = await api.get('/schedule?status=pending');
-      const items = response.data || [];
+      const { data: response } = await api.get('/schedule?status=scheduled');
+      const items = (response.data || []) as Record<string, unknown>[];
       return items.map(mapBackendToFrontend);
     },
     enabled: true,
-    refetchInterval: 30000 // Refresh every 30 seconds
+    refetchInterval: 30000
   })
 }

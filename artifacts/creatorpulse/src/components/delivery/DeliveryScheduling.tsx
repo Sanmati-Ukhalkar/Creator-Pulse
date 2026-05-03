@@ -96,7 +96,7 @@ export function DeliveryScheduling() {
         contentType: "post",
         scheduledFor,
         autoGenerate: true,
-        recurringConfig: recurringConfig as any,
+        recurringConfig,
       });
     });
 

@@ -109,9 +109,9 @@ export function DraftCard({ draft, onEdit, onSchedule, onDelete, onDuplicate }: 
     return text.substring(0, maxLength) + '...';
   };
 
-  const contentText = typeof (draft.content as any)?.text === 'string'
-    ? (draft.content as any).text
-    : (typeof (draft.content as any) === 'string' ? String(draft.content) : '');
+  const contentText = typeof draft.content?.text === 'string'
+    ? draft.content.text
+    : '';
   const displayText = isExpanded ? contentText : truncateText(contentText);
 
   return (
@@ -192,9 +192,9 @@ export function DraftCard({ draft, onEdit, onSchedule, onDelete, onDuplicate }: 
 
           {/* Hashtags */}
           {(() => {
-            const raw = (draft.content as any)?.hashtags;
+            const raw = draft.content?.hashtags;
             let hashtags: string[] = [];
-            if (Array.isArray(raw)) hashtags = raw as string[];
+            if (Array.isArray(raw)) hashtags = raw;
             else if (typeof raw === 'string') {
               hashtags = raw.split(/[,#\s]+/).map(t => t.trim()).filter(Boolean);
             }

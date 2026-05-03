@@ -152,7 +152,7 @@ const TrendDetails = () => {
           {isLoading ? (
             <div className="h-40 bg-muted rounded animate-pulse" />
           ) : error ? (
-            <div className="text-destructive">Failed to load trend: {(error as any).message}</div>
+            <div className="text-destructive">Failed to load trend: {error instanceof Error ? error.message : 'Unknown error'}</div>
           ) : !data ? (
             <div className="text-muted-foreground">No data found.</div>
           ) : (

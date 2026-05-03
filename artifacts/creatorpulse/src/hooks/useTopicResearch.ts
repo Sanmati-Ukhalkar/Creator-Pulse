@@ -25,9 +25,8 @@ export const useTopicResearch = () => {
       toast.success(message)
       queryClient.invalidateQueries({ queryKey: ['topic-research'] })
     },
-    onError: (error) => {
-      console.error('Research mutation error:', error)
-      toast.error(`Research failed: ${(error as any).message || 'Unknown error'}`)
+    onError: (error: Error) => {
+      toast.error(`Research failed: ${error.message || 'Unknown error'}`)
     }
   })
 
