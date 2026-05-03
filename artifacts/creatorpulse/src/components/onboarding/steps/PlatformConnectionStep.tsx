@@ -9,38 +9,38 @@ import { Trash2, Plus, CheckCircle, AlertCircle } from 'lucide-react';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import type { ContentSample } from '@/types/onboarding';
 
-const platformColors = {
-  twitter: 'bg-[#1DA1F2]',
-  linkedin: 'bg-[#0077B5]',
+const platformColors: Record<string, string> = {
+  twitter: 'bg-slate-800',
+  linkedin: 'bg-blue-600',
   instagram: 'bg-gradient-to-r from-purple-500 to-pink-500',
-  youtube: 'bg-[#FF0000]',
-  tiktok: 'bg-black',
-  threads: 'bg-black',
+  youtube: 'bg-red-600',
+  tiktok: 'bg-slate-900',
+  threads: 'bg-slate-900',
 };
 
 export function PlatformConnectionStep() {
-  const { 
-    profileData, 
-    contentSamples, 
-    addContentSample, 
-    removeContentSample, 
-    nextStep, 
-    prevStep, 
-    isLoading 
+  const {
+    profileData,
+    contentSamples,
+    addContentSample,
+    removeContentSample,
+    nextStep,
+    prevStep,
+    isLoading
   } = useOnboardingStore();
-  
+
   const [activeTab, setActiveTab] = useState(profileData.platforms[0] || 'twitter');
   const [newSample, setNewSample] = useState({ content: '' });
-  
-  const platformHeadings = {
-    twitter: "Top 20 Twitter Content Drafts",
-    linkedin: "Top 20 LinkedIn Content Drafts", 
-    instagram: "Top 20 Instagram Content Drafts"
+
+  const platformHeadings: Record<string, string> = {
+    twitter: "Top Twitter Content",
+    linkedin: "Top LinkedIn Content",
+    instagram: "Top Instagram Content"
   };
 
   const handleAddSample = () => {
     if (!newSample.content.trim()) return;
-    
+
     const sample: ContentSample = {
       id: Date.now().toString(),
       platform: activeTab,
@@ -52,42 +52,30 @@ export function PlatformConnectionStep() {
         views: Math.floor(Math.random() * 10000),
       },
     };
-    
+
     addContentSample(sample);
     setNewSample({ content: '' });
   };
 
-  const handleSkip = () => {
-    nextStep();
-  };
-
-  const getSamplesForPlatform = (platform: string) => 
+  const getSamplesForPlatform = (platform: string) =>
     contentSamples.filter(sample => sample.platform === platform);
 
-  const getMinSamplesForPlatform = (platform: string) => {
-    const samples = getSamplesForPlatform(platform);
-    return samples.length >= 3;
-  };
+  const getMinSamplesForPlatform = (platform: string) =>
+    getSamplesForPlatform(platform).length >= 3;
 
   const allPlatformsReady = profileData.platforms.every(getMinSamplesForPlatform);
-
-  const handleContinue = () => {
-    if (allPlatformsReady) {
-      nextStep();
-    }
-  };
 
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.4 }}
       className="max-w-4xl mx-auto space-y-6"
     >
       <div className="text-center">
-        <h2 className="text-2xl font-bold mb-2">Connect your best content</h2>
-        <p className="text-gray-400">
+        <h2 className="text-2xl font-bold text-foreground mb-1">Connect your best content</h2>
+        <p className="text-muted-foreground text-sm">
           Share 3+ high-performing posts from each platform to train your AI voice
         </p>
       </div>
@@ -97,23 +85,18 @@ export function PlatformConnectionStep() {
         {profileData.platforms.map((platform) => {
           const samplesCount = getSamplesForPlatform(platform);
           const isComplete = samplesCount.length >= 3;
-          const isActive = activeTab === platform;
-          
+          const isActivePlatform = activeTab === platform;
+
           return (
             <Button
               key={platform}
-              variant={isActive ? "default" : "outline"}
+              variant={isActivePlatform ? "default" : "outline"}
               onClick={() => setActiveTab(platform)}
-              className={`relative ${isActive ? 'bg-cyan-600 hover:bg-cyan-700' : ''}`}
+              className={isActivePlatform ? 'bg-primary hover:bg-primary/90' : ''}
             >
               <span className="capitalize">{platform}</span>
-              {isComplete && (
-                <CheckCircle className="w-4 h-4 ml-2 text-emerald-400" />
-              )}
-              <Badge 
-                variant="secondary" 
-                className="ml-2 text-xs"
-              >
+              {isComplete && <CheckCircle className="w-3.5 h-3.5 ml-2 text-emerald-300" />}
+              <Badge variant="secondary" className="ml-2 text-xs">
                 {samplesCount.length}/3
               </Badge>
             </Button>
@@ -121,124 +104,111 @@ export function PlatformConnectionStep() {
         })}
       </div>
 
-      {/* Content Samples for Active Platform */}
-      <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/30">
+      {/* Content Samples */}
+      <Card className="shadow-sm">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>
-                {platformHeadings[activeTab as keyof typeof platformHeadings]}
+              <CardTitle className="text-base">
+                {platformHeadings[activeTab] || `Top ${activeTab} Content`}
               </CardTitle>
               <CardDescription>
                 Paste your top-performing {activeTab} content here...
               </CardDescription>
             </div>
-            <div className={`w-3 h-3 rounded-full ${
-              getMinSamplesForPlatform(activeTab) ? 'bg-emerald-400' : 'bg-yellow-400'
+            <div className={`w-2.5 h-2.5 rounded-full ${
+              getMinSamplesForPlatform(activeTab) ? 'bg-emerald-500' : 'bg-amber-400'
             }`} />
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Existing Samples */}
+        <CardContent className="space-y-3">
           {getSamplesForPlatform(activeTab).map((sample) => (
             <motion.div
               key={sample.id}
-              initial={{ opacity: 0, scale: 0.95 }}
+              initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-gray-800/50 rounded-lg p-4 space-y-3"
+              className="bg-muted/50 rounded-lg p-4 space-y-2 border border-border"
             >
               <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <p className="text-sm text-gray-300 line-clamp-3">
-                    {sample.content}
-                  </p>
-                </div>
+                <p className="text-sm text-foreground line-clamp-3 flex-1">{sample.content}</p>
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={() => removeContentSample(sample.id)}
-                  className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10 ml-2 flex-shrink-0"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </Button>
               </div>
-              
               {sample.engagementMetrics && (
-                <div className="flex gap-4 text-xs text-gray-400">
+                <div className="flex gap-4 text-xs text-muted-foreground">
                   <span>❤️ {sample.engagementMetrics.likes}</span>
                   <span>💬 {sample.engagementMetrics.comments}</span>
                   <span>🔄 {sample.engagementMetrics.shares}</span>
-                  {sample.engagementMetrics.views && (
-                    <span>👁️ {sample.engagementMetrics.views}</span>
-                  )}
+                  {sample.engagementMetrics.views && <span>👁️ {sample.engagementMetrics.views}</span>}
                 </div>
               )}
             </motion.div>
           ))}
 
-          {/* Add New Sample Form */}
-          <Card className="bg-gray-800/30 border-gray-700 border-dashed">
-            <CardContent className="p-4 space-y-4">
-              <div>
-                <Label htmlFor="content">Content</Label>
-                <Textarea
-                  id="content"
-                  placeholder={`Paste your top-performing ${activeTab} content here...`}
-                  value={newSample.content}
-                  onChange={(e) => setNewSample({ content: e.target.value })}
-                  className="bg-gray-800/50 border-gray-700 min-h-[200px] resize-y"
-                />
-                <div className="text-xs text-gray-400 mt-1">
-                  {newSample.content.length} characters
-                </div>
+          {/* Add Sample Form */}
+          <div className="border border-dashed border-border rounded-lg p-4 space-y-3">
+            <div>
+              <Label htmlFor="content">Paste Content</Label>
+              <Textarea
+                id="content"
+                placeholder={`Paste your top-performing ${activeTab} content here...`}
+                value={newSample.content}
+                onChange={(e) => setNewSample({ content: e.target.value })}
+                className="mt-1 min-h-[150px] resize-y"
+              />
+              <div className="text-xs text-muted-foreground mt-1">
+                {newSample.content.length} characters
               </div>
-              
-              <Button
-                onClick={handleAddSample}
-                disabled={!newSample.content.trim()}
-                className="w-full bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Content Sample
-              </Button>
-            </CardContent>
-          </Card>
+            </div>
+            <Button
+              onClick={handleAddSample}
+              disabled={!newSample.content.trim()}
+              className="w-full bg-primary hover:bg-primary/90"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Add Content Sample
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
       {/* Progress Summary */}
-      <Card className="bg-gray-900/60 backdrop-blur-xl border-gray-800/30">
-        <CardHeader>
-          <CardTitle>Progress Summary</CardTitle>
+      <Card className="shadow-sm">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Progress Summary</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
+          <div className="grid gap-3">
             {profileData.platforms.map((platform) => {
               const samples = getSamplesForPlatform(platform);
               const isComplete = samples.length >= 3;
-              
+
               return (
                 <div key={platform} className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <div className={`w-8 h-8 rounded-lg mr-3 flex items-center justify-center ${
-                      platformColors[platform as keyof typeof platformColors] || 'bg-gray-600'
+                  <div className="flex items-center gap-2">
+                    <div className={`w-7 h-7 rounded-md flex items-center justify-center ${
+                      platformColors[platform] || 'bg-slate-600'
                     }`}>
                       <span className="text-white text-xs font-bold capitalize">
                         {platform.charAt(0)}
                       </span>
                     </div>
-                    <span className="capitalize font-medium">{platform}</span>
+                    <span className="capitalize font-medium text-sm text-foreground">{platform}</span>
                   </div>
-                  
                   <div className="flex items-center gap-2">
-                    <Badge variant={isComplete ? "default" : "secondary"}>
+                    <Badge variant={isComplete ? "default" : "secondary"} className="text-xs">
                       {samples.length}/3 samples
                     </Badge>
-                    {isComplete ? (
-                      <CheckCircle className="w-5 h-5 text-emerald-400" />
-                    ) : (
-                      <AlertCircle className="w-5 h-5 text-yellow-400" />
-                    )}
+                    {isComplete
+                      ? <CheckCircle className="w-4 h-4 text-emerald-600" />
+                      : <AlertCircle className="w-4 h-4 text-amber-500" />
+                    }
                   </div>
                 </div>
               );
@@ -249,22 +219,15 @@ export function PlatformConnectionStep() {
 
       {/* Navigation */}
       <div className="flex justify-between">
-        <Button type="button" variant="outline" onClick={prevStep}>
-          Back
-        </Button>
-        <div className="flex gap-3">
-          <Button 
-            type="button" 
-            variant="ghost" 
-            onClick={handleSkip}
-            className="hover:bg-gray-800/50"
-          >
+        <Button type="button" variant="outline" onClick={prevStep}>Back</Button>
+        <div className="flex gap-2">
+          <Button type="button" variant="ghost" onClick={nextStep} className="text-muted-foreground">
             Skip for Now
           </Button>
-          <Button 
-            onClick={handleContinue} 
+          <Button
+            onClick={nextStep}
             disabled={!allPlatformsReady || isLoading}
-            className="bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600"
+            className="bg-primary hover:bg-primary/90"
           >
             {isLoading ? 'Analyzing...' : 'Continue to Voice Training'}
           </Button>

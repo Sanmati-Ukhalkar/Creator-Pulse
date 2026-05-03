@@ -6,9 +6,6 @@ import {
   TrendingUp,
   Settings,
   Zap,
-  BarChart3,
-  Calendar,
-  Users,
   Rss,
   FileText,
   Send,
@@ -51,41 +48,41 @@ export function CreatorSidebar() {
     <Sidebar className={collapsed ? "w-16" : "w-64"} collapsible="icon" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
       <SidebarContent className="bg-sidebar border-r border-sidebar-border">
         {/* Logo */}
-        <div className={collapsed ? "p-2 border-b border-sidebar-border" : "p-6 border-b border-sidebar-border"}>
+        <div className={collapsed ? "p-2 border-b border-sidebar-border flex justify-center" : "p-5 border-b border-sidebar-border"}>
           {!collapsed ? (
             <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-lg bg-creator-gradient flex items-center justify-center">
-                <Zap className="w-5 h-5 text-primary-foreground" />
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+                <Zap className="w-4 h-4 text-white" />
               </div>
-              <span className="text-xl font-bold creator-text-gradient">CreatorPulse</span>
+              <span className="text-lg font-bold text-white">CreatorPulse</span>
             </div>
           ) : (
-            <div className="w-10 h-10 mx-auto rounded-lg bg-creator-gradient flex items-center justify-center">
-              <Zap className="w-6 h-6 text-primary-foreground" />
+            <div className="w-9 h-9 rounded-lg bg-primary flex items-center justify-center">
+              <Zap className="w-5 h-5 text-white" />
             </div>
           )}
         </div>
 
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
+          <SidebarGroupLabel className={collapsed ? "sr-only" : "text-xs text-sidebar-foreground/50 uppercase tracking-wider px-3 pt-4 pb-1"}>
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-1">
+            <SidebarMenu className="space-y-0.5 px-2">
               {navigation.map((item) => (
                 <SidebarMenuItem key={item.name}>
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.href}
                       className={({ isActive: navActive }) =>
-                        `flex items-center space-x-3 px-3 py-2 rounded-lg transition-all duration-200 ${navActive || isActive(item.href)
-                          ? 'bg-sidebar-accent text-sidebar-primary border border-sidebar-primary/20'
-                          : 'text-white hover:bg-sidebar-accent/50 hover:text-white'
+                        `flex items-center space-x-3 px-3 py-2 rounded-md transition-all duration-150 text-sm ${navActive || isActive(item.href)
+                          ? 'bg-sidebar-accent text-white font-medium'
+                          : 'text-sidebar-foreground hover:bg-sidebar-accent/60 hover:text-white'
                         }`
                       }
                     >
-                      <item.icon className="w-5 h-5 flex-shrink-0" />
-                      {!collapsed && <span className="font-medium">{item.name}</span>}
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      {!collapsed && <span>{item.name}</span>}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -94,31 +91,39 @@ export function CreatorSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        {/* Bottom section */}
-        <div className="mt-auto p-4 border-t border-sidebar-border">
-          {!collapsed && (
-            <div className="glass-card p-4">
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="w-8 h-8 rounded-full bg-creator-gradient flex items-center justify-center text-xs font-semibold text-primary-foreground">
-                  {user?.email?.charAt(0).toUpperCase() || 'A'}
+        {/* Bottom user section */}
+        <div className="mt-auto p-3 border-t border-sidebar-border">
+          {!collapsed ? (
+            <div className="bg-sidebar-accent rounded-lg p-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+                  {user?.email?.charAt(0).toUpperCase() || 'U'}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-card-foreground truncate">{user?.email || 'Creator'}</p>
-                  <p className="text-xs text-muted-foreground">Pro Plan</p>
+                  <p className="text-sm font-medium text-white truncate">{user?.email || 'Creator'}</p>
+                  <p className="text-xs text-sidebar-foreground">Pro Plan</p>
                 </div>
                 <button
                   onClick={signOut}
-                  className="p-1.5 hover:bg-red-500/20 text-muted-foreground hover:text-red-400 rounded-md transition-colors"
+                  className="p-1.5 text-sidebar-foreground hover:text-red-400 hover:bg-red-400/10 rounded transition-colors flex-shrink-0"
                   title="Log out"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
               </div>
-              <div className="w-full bg-muted rounded-full h-1.5">
-                <div className="bg-creator-gradient h-1.5 rounded-full w-3/4"></div>
+              <div className="mt-2.5 w-full bg-sidebar-border rounded-full h-1">
+                <div className="bg-primary h-1 rounded-full w-3/4" />
               </div>
-              <p className="text-xs text-muted-foreground mt-1">75% of monthly limit</p>
+              <p className="text-xs text-sidebar-foreground mt-1">75% of monthly limit</p>
             </div>
+          ) : (
+            <button
+              onClick={signOut}
+              className="w-full flex justify-center p-2 text-sidebar-foreground hover:text-red-400 hover:bg-red-400/10 rounded transition-colors"
+              title="Log out"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           )}
         </div>
       </SidebarContent>

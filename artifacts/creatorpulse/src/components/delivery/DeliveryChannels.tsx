@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { ChannelCard } from "@/components/delivery/ChannelCard";
 import { ChannelPreview } from "@/components/delivery/ChannelPreview";
 import { Mail, MessageCircle, Settings, Eye, BarChart3 } from "lucide-react";
@@ -13,7 +10,7 @@ export function DeliveryChannels() {
     email: true,
     whatsapp: false
   });
-  
+
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
 
   const channels = [
@@ -23,12 +20,7 @@ export function DeliveryChannels() {
       icon: Mail,
       description: "Send drafts via email newsletters",
       active: activeChannels.email,
-      stats: {
-        sent: 1247,
-        delivered: 1198,
-        opened: 856,
-        clicked: 234
-      },
+      stats: { sent: 1247, delivered: 1198, opened: 856, clicked: 234 },
       deliveryRate: "96.1%",
       openRate: "71.4%",
       clickRate: "27.3%"
@@ -39,12 +31,7 @@ export function DeliveryChannels() {
       icon: MessageCircle,
       description: "Send drafts via WhatsApp messages",
       active: activeChannels.whatsapp,
-      stats: {
-        sent: 0,
-        delivered: 0,
-        opened: 0,
-        clicked: 0
-      },
+      stats: { sent: 0, delivered: 0, opened: 0, clicked: 0 },
       deliveryRate: "0%",
       openRate: "0%",
       clickRate: "0%"
@@ -54,14 +41,13 @@ export function DeliveryChannels() {
   const toggleChannel = (channelId: string) => {
     setActiveChannels(prev => ({
       ...prev,
-      [channelId]: !prev[channelId]
+      [channelId]: !prev[channelId as keyof typeof prev]
     }));
   };
 
   return (
     <div className="space-y-6">
-      {/* Channel Overview */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {channels.map((channel) => (
           <ChannelCard
             key={channel.id}
@@ -73,11 +59,11 @@ export function DeliveryChannels() {
         ))}
       </div>
 
-      {/* Channel Statistics */}
+      {/* Delivery Analytics */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BarChart3 className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-base">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
             Delivery Analytics
           </CardTitle>
           <CardDescription>
@@ -85,28 +71,27 @@ export function DeliveryChannels() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="text-center space-y-2">
-              <div className="text-2xl font-bold text-creator-cyan">1247</div>
-              <div className="text-sm text-muted-foreground">Total Sent</div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center space-y-1">
+              <div className="text-2xl font-bold text-primary">1247</div>
+              <div className="text-xs text-muted-foreground">Total Sent</div>
             </div>
-            <div className="text-center space-y-2">
-              <div className="text-2xl font-bold text-creator-emerald">1198</div>
-              <div className="text-sm text-muted-foreground">Delivered</div>
+            <div className="text-center space-y-1">
+              <div className="text-2xl font-bold text-emerald-600">1198</div>
+              <div className="text-xs text-muted-foreground">Delivered</div>
             </div>
-            <div className="text-center space-y-2">
-              <div className="text-2xl font-bold text-creator-violet">856</div>
-              <div className="text-sm text-muted-foreground">Opened</div>
+            <div className="text-center space-y-1">
+              <div className="text-2xl font-bold text-violet-600">856</div>
+              <div className="text-xs text-muted-foreground">Opened</div>
             </div>
-            <div className="text-center space-y-2">
-              <div className="text-2xl font-bold text-creator-orange">234</div>
-              <div className="text-sm text-muted-foreground">Clicked</div>
+            <div className="text-center space-y-1">
+              <div className="text-2xl font-bold text-orange-500">234</div>
+              <div className="text-xs text-muted-foreground">Clicked</div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Channel Configuration/Preview */}
       {selectedChannel && (
         <ChannelPreview
           channel={channels.find(c => c.id === selectedChannel)!}
@@ -116,20 +101,20 @@ export function DeliveryChannels() {
 
       {/* Quick Actions */}
       <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Quick Actions</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm">
-            <Settings className="h-4 w-4 mr-2" />
+            <Settings className="h-3.5 w-3.5 mr-1.5" />
             Configure Templates
           </Button>
           <Button variant="outline" size="sm">
-            <Eye className="h-4 w-4 mr-2" />
+            <Eye className="h-3.5 w-3.5 mr-1.5" />
             Test Delivery
           </Button>
           <Button variant="outline" size="sm">
-            <BarChart3 className="h-4 w-4 mr-2" />
+            <BarChart3 className="h-3.5 w-3.5 mr-1.5" />
             View Analytics
           </Button>
         </CardContent>

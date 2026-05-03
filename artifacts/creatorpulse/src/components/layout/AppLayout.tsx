@@ -7,16 +7,14 @@ interface AppLayoutProps {
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-  // Admin status can be leveraged by child components if needed later
   useAdmin();
   return (
     <SidebarProvider defaultOpen={false}>
-      <div className="min-h-screen flex w-full">
+      <div className="min-h-screen flex w-full bg-background">
         <CreatorSidebar />
-        <main className="flex-1 flex flex-col">
-          <header className="h-14 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 flex items-center px-4">
+        <main className="flex-1 flex flex-col min-w-0">
+          <header className="h-14 border-b border-border bg-background flex items-center px-4 sticky top-0 z-10">
             <nav aria-label="Breadcrumb" className="text-sm text-muted-foreground">
-              {/* Reserved for breadcrumbs or page actions */}
             </nav>
           </header>
           <div className="flex-1 p-6">

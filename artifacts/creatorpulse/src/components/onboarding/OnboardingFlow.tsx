@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
+import { Zap } from 'lucide-react';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { ProfileSetupStep } from './steps/ProfileSetupStep';
 import { PlatformConnectionStep } from './steps/PlatformConnectionStep';
@@ -20,21 +21,16 @@ export function OnboardingFlow() {
   const { currentStep, setStep } = useOnboardingStore();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Handle step parameter from URL and sync it
   useEffect(() => {
     const stepParam = searchParams.get('step');
-
-    // Initial load: set state from URL
     if (stepParam && currentStep === 1) {
       const step = parseInt(stepParam);
       if (step >= 2 && step <= 5) {
         setStep(step);
       }
     } else if (currentStep === 1) {
-      // If no step parameter and we're on step 1, start from step 2
       setStep(2);
     } else if (currentStep > 1 && parseInt(stepParam || "1") !== currentStep) {
-      // Sync URL to match our new step
       setSearchParams({ step: currentStep.toString() }, { replace: true });
     }
   }, [currentStep, searchParams, setStep, setSearchParams]);
@@ -43,87 +39,70 @@ export function OnboardingFlow() {
 
   const renderStep = () => {
     switch (currentStep) {
-      case 2:
-        return <ProfileSetupStep />;
-      case 3:
-        return <PlatformConnectionStep />;
-      case 4:
-        return <VoiceTrainingStep />;
-      case 5:
-        return <DeliveryPreferencesStep />;
-      default:
-        return <ProfileSetupStep />;
+      case 2: return <ProfileSetupStep />;
+      case 3: return <PlatformConnectionStep />;
+      case 4: return <VoiceTrainingStep />;
+      case 5: return <DeliveryPreferencesStep />;
+      default: return <ProfileSetupStep />;
     }
   };
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Animated Background */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-cyan-500/20 to-transparent rounded-full blur-3xl animate-pulse" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-violet-500/20 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 bg-gradient-to-r from-emerald-500/10 to-transparent rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-      </div>
-
-      <div className="relative z-10">
-        {/* Header with Progress */}
-        <div className="border-b border-gray-800/30 bg-gray-900/60 backdrop-blur-xl">
-          <div className="max-w-4xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-violet-400 bg-clip-text text-transparent">
-                  CreatorPulse
-                </h1>
-                <Badge variant="secondary" className="ml-3">
-                  Setup
-                </Badge>
+      {/* Header with Progress */}
+      <div className="border-b border-border bg-background sticky top-0 z-10">
+        <div className="max-w-4xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-7 h-7 rounded-md bg-primary flex items-center justify-center">
+                <Zap className="w-4 h-4 text-white" />
               </div>
-              <div className="text-sm text-gray-400">
-                Step {currentStep - 1} of {steps.length}
-              </div>
+              <h1 className="text-xl font-bold text-foreground">CreatorPulse</h1>
+              <Badge variant="secondary" className="ml-1">Setup</Badge>
             </div>
+            <div className="text-sm text-muted-foreground">
+              Step {currentStep - 1} of {steps.length}
+            </div>
+          </div>
 
-            {/* Progress Bar */}
-            <div className="space-y-2">
-              <Progress value={progress} className="h-2" />
-              <div className="flex justify-between text-xs">
-                {steps.map((step, index) => (
-                  <div
-                    key={step.id}
-                    className={`flex flex-col items-center ${step.id <= currentStep ? 'text-cyan-400' : 'text-gray-500'
-                      }`}
-                  >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium mb-1 ${step.id < currentStep
+          <div className="space-y-3">
+            <Progress value={progress} className="h-1.5" />
+            <div className="flex justify-between text-xs">
+              {steps.map((step, index) => (
+                <div
+                  key={step.id}
+                  className={`flex flex-col items-center gap-1 ${step.id <= currentStep ? 'text-primary' : 'text-muted-foreground'}`}
+                >
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold ${
+                    step.id < currentStep
                       ? 'bg-emerald-500 text-white'
                       : step.id === currentStep
-                        ? 'bg-cyan-500 text-white'
-                        : 'bg-gray-700 text-gray-400'
-                      }`}>
-                      {step.id < currentStep ? '✓' : index + 1}
-                    </div>
-                    <span className="font-medium">{step.title}</span>
-                    <span className="text-gray-500">{step.description}</span>
+                        ? 'bg-primary text-white'
+                        : 'bg-muted text-muted-foreground'
+                  }`}>
+                    {step.id < currentStep ? '✓' : index + 1}
                   </div>
-                ))}
-              </div>
+                  <span className="font-medium hidden sm:block">{step.title}</span>
+                </div>
+              ))}
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Step Content */}
-        <div className="max-w-5xl mx-auto px-6 py-8">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={currentStep}
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.3 }}
-            >
-              {renderStep()}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+      {/* Step Content */}
+      <div className="max-w-5xl mx-auto px-6 py-8">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStep}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.25 }}
+          >
+            {renderStep()}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

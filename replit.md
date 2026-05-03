@@ -23,8 +23,16 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - Axios for API calls to `/api/*`
 - JWT auth stored in `localStorage` as `auth_token`
 - State: Zustand (onboarding store), TanStack Query (server state)
-- Dark UI theme with cyan/violet gradients
-- Routes: `/login`, `/signup`, `/onboarding`, `/dashboard`, `/drafts`, `/sources`, `/trends`, `/topics`, `/settings`
+- **UI Theme**: Clean professional light mode — white backgrounds (#F8FAFC), solid primary blue (#2563EB), solid accent violet (#7C3AED), dark sidebar (#0F172A). NO neon/cyan/glass/glow effects.
+- CSS Variables in `artifacts/creatorpulse/src/index.css`:
+  - `--primary: 221 83% 53%` (blue-600)
+  - `--accent: 262 83% 58%` (violet-600)
+  - `--creator-cyan: 221 83% 53%` (solid blue, replaces neon cyan)
+  - `glass-card` = clean white card with border/shadow
+  - `glass-button` = clean outlined button
+  - `creator-gradient` = blue-to-purple gradient (no neon)
+  - `creator-text-gradient` = solid primary text (no gradient text)
+- Routes: `/login`, `/signup`, `/onboarding`, `/dashboard`, `/drafts`, `/sources`, `/trends`, `/topics`, `/settings`, `/workflow`, `/delivery`, `/voice-training`
 
 ### API Server (`artifacts/api-server`) — Express backend
 - Serves all routes under `/api/`
@@ -67,3 +75,12 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - `pnpm run typecheck` — full typecheck across all packages
 - `pnpm --filter @workspace/api-server run dev` — run API server locally
 - `pnpm --filter @workspace/creatorpulse run dev` — run frontend locally
+
+## Design System Notes
+
+The UI was completely redesigned from a dark/neon/cyberpunk aesthetic to a clean professional light mode.
+- **Removed**: animated backgrounds, floating particles/orbs, glass morphism, neon cyan/violet gradients, glow effects
+- **Added**: solid blue primary, clean white cards, subtle shadows, professional SaaS look
+- `animated-background.tsx` returns `null` — keep it that way
+- Semantic tokens like `text-creator-cyan` now map to solid blue (not neon) via CSS variables
+- `glass-card`, `glass-button`, `creator-gradient`, `creator-text-gradient` are redefined as clean utilities in `index.css`

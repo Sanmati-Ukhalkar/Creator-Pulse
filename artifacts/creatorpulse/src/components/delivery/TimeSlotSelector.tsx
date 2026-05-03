@@ -13,8 +13,8 @@ export function TimeSlotSelector() {
   ];
 
   const toggleSlot = (slotId: string) => {
-    setSelectedSlots(prev => 
-      prev.includes(slotId) 
+    setSelectedSlots(prev =>
+      prev.includes(slotId)
         ? prev.filter(id => id !== slotId)
         : [...prev, slotId]
     );
@@ -26,26 +26,26 @@ export function TimeSlotSelector() {
         {timeSlots.map((slot) => {
           const Icon = slot.icon;
           const isSelected = selectedSlots.includes(slot.id);
-          
+
           return (
             <Button
               key={slot.id}
               variant={isSelected ? "default" : "outline"}
               onClick={() => toggleSlot(slot.id)}
               className={`justify-start h-auto p-3 ${
-                isSelected ? "bg-creator-gradient hover:bg-creator-gradient-secondary" : ""
+                isSelected ? "bg-primary hover:bg-primary/90" : ""
               }`}
             >
-              <Icon className="h-4 w-4 mr-3" />
+              <Icon className="h-4 w-4 mr-3 flex-shrink-0" />
               <div className="flex flex-col items-start">
-                <span className="font-medium">{slot.label}</span>
+                <span className="font-medium text-sm">{slot.label}</span>
                 <span className="text-xs opacity-70">{slot.time}</span>
               </div>
             </Button>
           );
         })}
       </div>
-      
+
       {selectedSlots.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {selectedSlots.map(slotId => {
