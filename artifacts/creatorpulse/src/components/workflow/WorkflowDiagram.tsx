@@ -101,7 +101,7 @@ export const WorkflowDiagram = () => {
           <div className="bg-blue-50 p-4 rounded-lg">
             <h4 className="font-semibold mb-2">Background Processes:</h4>
             <ul className="text-sm space-y-1">
-              <li>• Scheduled content scraping via Supabase Edge Functions</li>
+              <li>• Scheduled content scraping via server-side cron jobs</li>
               <li>• LLM-powered topic extraction and trending analysis</li>
               <li>• Content classification and relevance scoring</li>
             </ul>
@@ -191,7 +191,7 @@ export const WorkflowDiagram = () => {
           <div className="bg-purple-50 p-4 rounded-lg">
             <h4 className="font-semibold mb-2">Automation Features:</h4>
             <ul className="text-sm space-y-1">
-              <li>• Cron-based scheduling with Supabase Edge Functions</li>
+              <li>• Cron-based scheduling with server-side job queues</li>
               <li>• Multi-platform delivery queues</li>
               <li>• Performance analytics and reporting</li>
             </ul>
@@ -234,12 +234,8 @@ export const WorkflowDiagram = () => {
               <h4 className="font-semibold mb-3">Backend Stack</h4>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-center gap-2">
-                  <Badge variant="outline">Supabase</Badge>
-                  <span>Database, Auth, Edge Functions</span>
-                </li>
-                <li className="flex items-center gap-2">
                   <Badge variant="outline">PostgreSQL</Badge>
-                  <span>Relational database</span>
+                  <span>Relational database via Replit Postgres</span>
                 </li>
                 <li className="flex items-center gap-2">
                   <Badge variant="outline">OpenAI API</Badge>

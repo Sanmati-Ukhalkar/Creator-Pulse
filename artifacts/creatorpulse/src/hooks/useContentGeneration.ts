@@ -3,10 +3,10 @@ import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
 export interface GenerateContentParams {
-  topic: string; // The topic title
-  description: string; // The context/description
-  platform: string; // 'linkedin', etc.
-  contentType: string; // 'text_post' -> mapped to 'linkedin_short'
+  topic: string;
+  description: string;
+  platform: string;
+  contentType: string;
   keywords?: string[];
   voiceSamples?: string[];
   hookText?: string;
@@ -24,11 +24,6 @@ export const useContentGeneration = () => {
 
   const generateContent = useMutation({
     mutationFn: async (params: GenerateContentParams) => {
-      console.log('Generating content via Backend API:', params)
-
-      // Map frontend params to backend schema
-      // Backend expects: { topic, description, content_type, ... }
-
       let backendContentType = 'linkedin_short';
       if (params.contentType === 'article' || params.contentType === 'linkedin_long') {
         backendContentType = 'linkedin_long';
@@ -47,23 +42,17 @@ export const useContentGeneration = () => {
       const { data } = await api.post('/generate', payload);
       return data;
     },
-    onSuccess: (response) => {
+    onSuccess: () => {
       toast.success('Content generated successfully!')
-      // Invalidate drafts query to show new item if we saved it?
-      // Currently backend returns the generated text but doesn't auto-save to DB as draft (it returned result).
-      // The frontend needs to handle the result (display in editor).
       queryClient.invalidateQueries({ queryKey: ['drafts'] })
-      return response;
     },
-    onError: (error: any) => {
-      console.error('Content generation mutation error:', error)
+    onError: (error: Error & { response?: { data?: { error?: string } } }) => {
       toast.error(error.response?.data?.error || 'Failed to generate content')
     }
   })
 
   const generateHooks = useMutation({
     mutationFn: async (params: GenerateHooksParams) => {
-      console.log('Generating hooks via Backend API:', params)
       const payload = {
         topic: params.topic,
         description: params.description || `Write a post about ${params.topic}`,
@@ -73,24 +62,20 @@ export const useContentGeneration = () => {
       const { data } = await api.post('/generate/hooks', payload);
       return data;
     },
-    onSuccess: (response) => {
+    onSuccess: () => {
       toast.success('Hooks generated successfully!')
-      return response;
     },
-    onError: (error: any) => {
-      console.error('Hook generation mutation error:', error)
+    onError: (error: Error & { response?: { data?: { error?: string } } }) => {
       toast.error(error.response?.data?.error || 'Failed to generate hooks')
     }
   })
 
   return {
     generateContent: generateContent.mutate,
-    generateContentAsync: generateContent.mutateAsync, // Export async version for awaiting result
+    generateContentAsync: generateContent.mutateAsync,
     isGenerating: generateContent.isPending,
     generationError: generateContent.error,
-    generatedResult: generateContent.data, // Expose data to component
-
-    // Hook generator specifically
+    generatedResult: generateContent.data,
     generateHooksAsync: generateHooks.mutateAsync,
     isGeneratingHooks: generateHooks.isPending,
   }

@@ -2,7 +2,7 @@ import React from 'react'
 
 type Props = { children: React.ReactNode }
 
-type State = { hasError: boolean; error?: any }
+type State = { hasError: boolean; error?: unknown }
 
 export class ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
@@ -10,12 +10,11 @@ export class ErrorBoundary extends React.Component<Props, State> {
     this.state = { hasError: false }
   }
 
-  static getDerivedStateFromError(error: any) {
+  static getDerivedStateFromError(error: unknown) {
     return { hasError: true, error }
   }
 
-  componentDidCatch(error: any, info: any) {
-    // eslint-disable-next-line no-console
+  componentDidCatch(error: unknown, info: React.ErrorInfo) {
     console.error('App error boundary caught:', error, info)
   }
 

@@ -31,8 +31,8 @@ export function DraftPublishButton({ content, draftId, onSuccess, disabled }: Dr
             });
 
             if (onSuccess) onSuccess();
-        } catch (error: any) {
-            console.error("Publish error:", error);
+        } catch (err) {
+            const error = err as { response?: { data?: { error?: string } } };
             toast({
                 title: "Publish Failed",
                 description: error.response?.data?.error || "Failed to publish content.",

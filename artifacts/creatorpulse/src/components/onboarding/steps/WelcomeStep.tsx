@@ -29,7 +29,6 @@ export function WelcomeStep() {
   };
 
   const handleSocialAuth = (provider: string) => {
-    // TODO: Implement Supabase OAuth
     updateUserData({ authProvider: provider });
     nextStep();
   };

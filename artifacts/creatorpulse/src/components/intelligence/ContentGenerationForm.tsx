@@ -142,7 +142,8 @@ export const ContentGenerationForm = ({
 
       toast.success("Published to LinkedIn successfully!");
       if (onSuccess) onSuccess();
-    } catch (error: any) {
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string } } };
       toast.error(error.response?.data?.error || "Failed to publish");
     } finally {
       setIsPublishing(false);

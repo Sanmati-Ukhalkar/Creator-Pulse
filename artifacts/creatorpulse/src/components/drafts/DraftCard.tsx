@@ -62,7 +62,8 @@ export function DraftCard({ draft, onEdit, onSchedule, onDelete, onDuplicate }: 
         setLocalUpstreamStatus(data.data.upstream_status);
         toast.success("Metrics updated from LinkedIn!");
       }
-    } catch (error: any) {
+    } catch (err) {
+      const error = err as { response?: { data?: { error?: string; upstream_status?: string } } };
       if (error.response?.data?.upstream_status === 'deleted') {
          setLocalUpstreamStatus('deleted');
          toast.error("This post was natively deleted on LinkedIn.");

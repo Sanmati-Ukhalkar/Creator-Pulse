@@ -53,7 +53,6 @@ export default function Drafts() {
   const [selectedContentType, setSelectedContentType] = useState('all');
   const [dateRange, setDateRange] = useState('all');
 
-  // Fetch drafts from Supabase
   useEffect(() => {
     fetchDrafts();
   }, []);
