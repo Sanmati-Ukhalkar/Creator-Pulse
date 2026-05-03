@@ -27,7 +27,7 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
       `INSERT INTO drafts (user_id, platform, content_type, title, content, metadata, status)
        VALUES ($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [userId, platform, content_type, title, content, metadata, status || "draft"]
+      [userId, platform, content_type, title, JSON.stringify(content), metadata ? JSON.stringify(metadata) : null, status || "draft"]
     );
     res.status(201).json(result.rows[0]);
   } catch (err: any) {
@@ -47,9 +47,9 @@ router.put("/:id", authMiddleware, async (req: Request, res: Response) => {
     let idx = 1;
 
     if (title !== undefined) { fields.push(`title = $${idx++}`); values.push(title); }
-    if (content !== undefined) { fields.push(`content = $${idx++}`); values.push(content); }
+    if (content !== undefined) { fields.push(`content = $${idx++}`); values.push(JSON.stringify(content)); }
     if (status !== undefined) { fields.push(`status = $${idx++}`); values.push(status); }
-    if (metadata !== undefined) { fields.push(`metadata = $${idx++}`); values.push(metadata); }
+    if (metadata !== undefined) { fields.push(`metadata = $${idx++}`); values.push(JSON.stringify(metadata)); }
 
     if (fields.length === 0) {
       res.status(400).json({ error: "No fields to update" });

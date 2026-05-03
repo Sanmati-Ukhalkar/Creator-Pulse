@@ -23,7 +23,7 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
       params.push(start.toISOString(), end.toISOString());
     }
 
-    query += " ORDER BY trend_score DESC";
+    query += " ORDER BY trend_score DESC NULLS LAST";
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err: any) {
@@ -35,12 +35,12 @@ router.get("/", authMiddleware, async (req: Request, res: Response) => {
 router.post("/", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    const { title, description, keywords, trend_score, confidence_score } = req.body;
+    const { title, description, keywords, trend_score, confidence_score, is_trending, topic_type } = req.body;
     const result = await pool.query(
-      `INSERT INTO topics (user_id, title, description, keywords, trend_score, confidence_score, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `INSERT INTO topics (user_id, title, description, keywords, trend_score, confidence_score, is_trending, topic_type, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
        RETURNING *`,
-      [userId, title, description, keywords || [], trend_score || 0, confidence_score || 0]
+      [userId, title, description, keywords || [], trend_score || 0, confidence_score || 0, is_trending || false, topic_type]
     );
     res.json(result.rows[0]);
   } catch (err: any) {

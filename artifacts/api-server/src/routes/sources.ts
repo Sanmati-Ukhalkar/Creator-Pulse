@@ -27,7 +27,7 @@ router.post("/", authMiddleware, async (req: Request, res: Response) => {
       `INSERT INTO sources (user_id, source_type, source_name, source_url, source_config, is_active, sync_status)
        VALUES ($1, $2, $3, $4, $5, true, 'pending')
        RETURNING *`,
-      [userId, source_type, source_name, source_url, source_config]
+      [userId, source_type, source_name, source_url, source_config ? JSON.stringify(source_config) : null]
     );
     res.status(201).json(result.rows[0]);
   } catch (err: any) {

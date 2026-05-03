@@ -47,7 +47,7 @@ router.put("/", authMiddleware, async (req: Request, res: Response) => {
 router.post("/onboarding", authMiddleware, async (req: Request, res: Response) => {
   try {
     const userId = req.user!.id;
-    const { profileData, contentSamples, deliveryPrefs } = req.body;
+    const { profileData, deliveryPrefs } = req.body;
 
     const client = await pool.connect();
     try {
