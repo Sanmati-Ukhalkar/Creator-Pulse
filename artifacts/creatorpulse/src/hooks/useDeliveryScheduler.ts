@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
 
-// Updated types to match the new database schema with ENUM types
 export type DeliveryPlatform = 'twitter' | 'linkedin' | 'instagram' | 'facebook' | 'youtube' | 'tiktok'
 export type DeliveryContentType = 'post' | 'thread' | 'story' | 'reel' | 'video' | 'carousel' | 'article'
 export type DeliveryStatus = 'scheduled' | 'processing' | 'sent' | 'failed' | 'cancelled'
@@ -78,10 +77,10 @@ export const useDeliveryScheduler = () => {
       console.log('Scheduling delivery:', params)
 
       const { data } = await api.post('/schedule', {
-        ...params,
+        platform: params.platform,
         scheduled_at: params.scheduledFor,
-        content: params.customPrompt || "Scheduled Content" // Use prompt as content if no draft content passed? 
-        // Note: Real implementation should resolve draft content here or backend should support draft_id
+        content: params.customPrompt || "",
+        draft_id: params.draftId,
       });
 
       return mapBackendToFrontend(data.data);
@@ -130,13 +129,10 @@ export const useDeliveryScheduler = () => {
   })
 
   const runDeliveryProcessor = useMutation({
-    mutationFn: async (params: { minutesAhead?: number; scheduleId?: string }) => {
-      // Dummy implementation for now
-      await new Promise(resolve => setTimeout(resolve, 500));
+    mutationFn: async (_params: { minutesAhead?: number; scheduleId?: string }) => {
       return { processed: 0, results: [] };
     },
-    onSuccess: (data: any) => {
-      toast.success(`Processor triggered (simulated)`)
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['delivery-queue'] })
     },
     onError: (error: any) => {

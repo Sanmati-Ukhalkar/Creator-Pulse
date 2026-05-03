@@ -6,7 +6,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { api } from '@/lib/api';
-// import { supabase } from '@/integrations/supabase/client';
 import { AnimatedBackground } from '@/components/ui/animated-background';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';

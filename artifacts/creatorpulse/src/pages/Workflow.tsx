@@ -355,7 +355,7 @@ export default function Workflow() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs text-muted-foreground">
           <div className="flex gap-2"><Zap className="h-3.5 w-3.5 text-amber-400 flex-shrink-0 mt-0.5" /><span><strong className="text-foreground">Run Pipeline</strong> — triggers the scraper for all sources, then asks the AI to extract trends. Generation is manual to save API tokens.</span></div>
           <div className="flex gap-2"><Clock className="h-3.5 w-3.5 text-blue-400 flex-shrink-0 mt-0.5" /><span><strong className="text-foreground">Scheduler</strong> — background cron runs every night; no need to manually trigger every day.</span></div>
-          <div className="flex gap-2"><Brain className="h-3.5 w-3.5 text-violet-400 flex-shrink-0 mt-0.5" /><span><strong className="text-foreground">AI Generation</strong> — requires the Python AI service running on port 8000. Start it via <code className="text-foreground">.\start_service.bat</code>.</span></div>
+          <div className="flex gap-2"><Brain className="h-3.5 w-3.5 text-violet-400 flex-shrink-0 mt-0.5" /><span><strong className="text-foreground">AI Generation</strong> — connect an AI provider via Replit Secrets to enable real content generation.</span></div>
           <div className="flex gap-2"><Users className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0 mt-0.5" /><span><strong className="text-foreground">LinkedIn Publishing</strong> — requires OAuth connection in Settings → Integrations. Then use "Publish Now" in Drafts.</span></div>
         </div>
       </div>

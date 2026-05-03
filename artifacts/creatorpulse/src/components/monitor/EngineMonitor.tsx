@@ -149,7 +149,7 @@ export function EngineMonitor() {
       addLog("error", `Database connection failed`);
     } else {
       updated[0] = { name: "Backend API", status: "error", latency: health.latency, detail: health.error };
-      updated[1] = { name: "Database", status: "unknown", detail: "Backend unreachable — run: cd backend && npm run dev" };
+      updated[1] = { name: "Database", status: "unknown", detail: "Backend unreachable — check the API Server workflow" };
       addLog("error", `Backend check failed: ${health.error}`);
     }
 
@@ -161,7 +161,7 @@ export function EngineMonitor() {
       addLog("info", `AI Service healthy — model: ${ad?.model}`);
     } else if (aiHealth.error?.includes("503")) {
       const ed = aiHealth.data as Record<string, unknown>;
-      updated[2] = { name: "AI Service", status: "error", latency: aiHealth.latency, detail: String(ed?.detail ?? "Not running — start .\\start_service.bat") };
+      updated[2] = { name: "AI Service", status: "error", latency: aiHealth.latency, detail: String(ed?.detail ?? "AI service not configured") };
       addLog("warn", `AI Service unreachable`);
     } else {
       updated[2] = { name: "AI Service", status: "error", latency: aiHealth.latency, detail: aiHealth.error ?? "Unreachable" };

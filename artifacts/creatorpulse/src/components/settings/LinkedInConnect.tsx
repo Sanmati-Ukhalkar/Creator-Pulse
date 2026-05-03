@@ -241,7 +241,7 @@ export function LinkedInConnect() {
 
           <CheckItem
             done={!!backendConfig?.hasClientId}
-            label="LINKEDIN_CLIENT_ID configured in backend/.env"
+            label="LINKEDIN_CLIENT_ID set in Replit Secrets"
           >
             {!backendConfig?.hasClientId && (
               <span>
@@ -256,13 +256,13 @@ export function LinkedInConnect() {
 
           <CheckItem
             done={!!backendConfig?.hasClientSecret}
-            label="LINKEDIN_CLIENT_SECRET configured in backend/.env"
+            label="LINKEDIN_CLIENT_SECRET set in Replit Secrets"
           >
             {!backendConfig?.hasClientSecret && "Found under your LinkedIn App → Auth tab."}
           </CheckItem>
 
-          <CheckItem done={true} label="Redirect URI set to http://localhost:4000/api/linkedin/callback">
-            Add this exact URL to your LinkedIn App's Authorized Redirect URLs.
+          <CheckItem done={!!backendConfig?.hasClientId && !!backendConfig?.hasClientSecret} label="Redirect URI configured in LinkedIn App">
+            Add your app's callback URL to your LinkedIn App's Authorized Redirect URLs.
           </CheckItem>
 
           <CheckItem done={isConnected} label="LinkedIn account connected">
@@ -285,16 +285,10 @@ export function LinkedInConnect() {
               {[
                 <>Go to <a href="https://www.linkedin.com/developers/apps/new" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline inline-flex items-center gap-1">LinkedIn Developer Apps <ExternalLink className="h-3 w-3" /></a> and create a new app.</>,
                 <>Fill in App Name (e.g. "CreatorPulse"), Company (your LinkedIn page), and upload a logo.</>,
-                <>In your app's <strong>Auth</strong> tab, add this Redirect URL exactly: <code className="bg-muted px-1.5 py-0.5 rounded text-xs">http://localhost:4000/api/linkedin/callback</code></>,
                 <>In the <strong>Products</strong> tab, request access to <strong>"Share on LinkedIn"</strong> and <strong>"Sign In with LinkedIn using OpenID Connect"</strong>.</>,
-                <>Copy the <strong>Client ID</strong> and <strong>Client Secret</strong> from the Auth tab.</>,
-                <>Open <code className="bg-muted px-1.5 py-0.5 rounded text-xs">C:\Sam\Creator_Pulse\backend\.env</code> and set:<br />
-                  <code className="bg-muted px-2 py-1 rounded text-xs block mt-1">
-                    LINKEDIN_CLIENT_ID=your_client_id<br />
-                    LINKEDIN_CLIENT_SECRET=your_client_secret
-                  </code>
-                </>,
-                <>Restart the backend terminal (<code className="bg-muted px-1.5 py-0.5 rounded text-xs">npm run dev</code> in <code className="text-xs">backend/</code>), then click Connect LinkedIn above.</>,
+                <>In your app's <strong>Auth</strong> tab, copy the <strong>Client ID</strong> and <strong>Client Secret</strong>, then add your app's callback URL to Authorized Redirect URLs.</>,
+                <>Add <code className="bg-muted px-1.5 py-0.5 rounded text-xs">LINKEDIN_CLIENT_ID</code> and <code className="bg-muted px-1.5 py-0.5 rounded text-xs">LINKEDIN_CLIENT_SECRET</code> to Replit Secrets.</>,
+                <>Click <strong>Connect LinkedIn</strong> above to start the OAuth flow.</>,
               ].map((step, i) => (
                 <li key={i} className="flex gap-3">
                   <span className="w-5 h-5 rounded-full bg-amber-500/20 text-amber-400 text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">

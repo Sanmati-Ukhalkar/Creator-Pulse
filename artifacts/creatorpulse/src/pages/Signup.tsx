@@ -6,7 +6,6 @@ import { motion } from 'framer-motion';
 import { Eye, EyeOff, Loader2, Mail, User, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '@/lib/api';
-// import { supabase } from '@/integrations/supabase/client';
 import { AnimatedBackground } from '@/components/ui/animated-background';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
