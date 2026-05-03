@@ -67,7 +67,7 @@ export function ProfileSettings() {
             <div className="relative">
               <Avatar className="h-24 w-24">
                 <AvatarImage src="" alt="Profile picture" />
-                <AvatarFallback className="text-lg bg-creator-gradient text-white">
+                <AvatarFallback className="text-lg bg-primary text-white">
                   {initials}
                 </AvatarFallback>
               </Avatar>
@@ -117,7 +117,7 @@ export function ProfileSettings() {
             </div>
           </div>
 
-          <Button onClick={saveProfile} disabled={isSaving} className="bg-creator-gradient hover:bg-creator-gradient-secondary">
+          <Button onClick={saveProfile} disabled={isSaving}>
             <Save className="h-4 w-4 mr-2" />
             {isSaving ? 'Saving...' : 'Save Changes'}
           </Button>

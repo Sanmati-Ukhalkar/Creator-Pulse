@@ -53,19 +53,19 @@ export function ContentPreferences() {
                 <SelectContent>
                   <SelectItem value="professional">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-creator-cyan"></div>
+                      <div className="w-3 h-3 rounded-full bg-primary"></div>
                       Professional
                     </div>
                   </SelectItem>
                   <SelectItem value="casual">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-creator-emerald"></div>
+                      <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                       Casual
                     </div>
                   </SelectItem>
                   <SelectItem value="engaging">
                     <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded-full bg-creator-orange"></div>
+                      <div className="w-3 h-3 rounded-full bg-orange-500"></div>
                       Engaging
                     </div>
                   </SelectItem>
@@ -223,7 +223,7 @@ export function ContentPreferences() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button className="bg-creator-gradient hover:bg-creator-gradient-secondary">
+        <Button>
           <Save className="h-4 w-4 mr-2" />
           Save Preferences
         </Button>

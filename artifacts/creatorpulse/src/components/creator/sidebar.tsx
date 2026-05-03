@@ -37,7 +37,7 @@ const navigation = [
 ];
 
 export function CreatorSidebar() {
-  const { state, setOpen } = useSidebar();
+  const { state } = useSidebar();
   const location = useLocation();
   const collapsed = state === 'collapsed';
   const { user, signOut } = useAuth();
@@ -45,7 +45,7 @@ export function CreatorSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <Sidebar className={collapsed ? "w-16" : "w-64"} collapsible="icon" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+    <Sidebar className={collapsed ? "w-16" : "w-64"} collapsible="icon">
       <SidebarContent className="bg-sidebar border-r border-sidebar-border">
         {/* Logo */}
         <div className={collapsed ? "p-2 border-b border-sidebar-border flex justify-center" : "p-5 border-b border-sidebar-border"}>
@@ -74,6 +74,7 @@ export function CreatorSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.href}
+                      title={collapsed ? item.name : undefined}
                       className={({ isActive: navActive }) =>
                         `flex items-center space-x-3 px-3 py-2 rounded-md transition-all duration-150 text-sm ${navActive || isActive(item.href)
                           ? 'bg-sidebar-accent text-white font-medium'

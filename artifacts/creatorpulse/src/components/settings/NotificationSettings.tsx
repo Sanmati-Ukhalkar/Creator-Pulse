@@ -286,7 +286,7 @@ export function NotificationSettings() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button className="bg-creator-gradient hover:bg-creator-gradient-secondary">
+        <Button>
           <Save className="h-4 w-4 mr-2" />
           Save Notification Settings
         </Button>
