@@ -61,10 +61,9 @@ export const scraperController = {
                     const tw = await scrapeTwitterTimeline(source);
                     if (tw.rateLimited) {
                         rateLimited = true;
-                        await pool.query(
-                            `UPDATE sources SET sync_status = 'error', sync_error = $1 WHERE id = $2`,
-                            [tw.retryAfter ? `Rate limited; retry after ${tw.retryAfter}` : 'Rate limited by Twitter API', source_id]
-                        );
+                        const sqlText = "UPDATE sources SET sync_status = 'error', sync_error = $1 WHERE id = $2";
+                        const sqlValues = [tw.retryAfter ? `Rate limited; retry after ${tw.retryAfter}` : 'Rate limited by Twitter API', source_id];
+                        await pool.query(sqlText, sqlValues);
                     } else {
                         scrapedContent = tw.items;
                         if (scrapedContent.length > 0 && scrapedContent[0].metadata?.tweet_id) {
