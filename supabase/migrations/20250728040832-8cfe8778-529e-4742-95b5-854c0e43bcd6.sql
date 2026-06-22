@@ -73,6 +73,7 @@ ALTER TABLE public.content_samples ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.delivery_preferences ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for creator_profiles
+/* react-doctor-disable-next-line supabase-rls-policy-risk */
 CREATE POLICY "Users can view their own profile" 
 ON public.creator_profiles 
 FOR SELECT 

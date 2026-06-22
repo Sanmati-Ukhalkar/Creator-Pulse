@@ -51,3 +51,9 @@ CREATE TABLE IF NOT EXISTS carousel_exports (
 -- Task 1.2: Add indexes on carousel_jobs.user_id and carousel_slides.job_id
 CREATE INDEX idx_carousel_jobs_user_id ON carousel_jobs(user_id);
 CREATE INDEX idx_carousel_slides_job_id ON carousel_slides(job_id);
+
+-- Enable Row Level Security
+ALTER TABLE design_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE carousel_jobs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE carousel_slides ENABLE ROW LEVEL SECURITY;
+ALTER TABLE carousel_exports ENABLE ROW LEVEL SECURITY;
