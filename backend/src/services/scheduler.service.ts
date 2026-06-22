@@ -38,10 +38,8 @@ export const schedulerService = {
 
             logger.info(`Found ${duePosts.length} posts due for publishing.`);
 
-            // 2. Process each post sequentially (simpler for MVP than parallel)
-            for (const post of duePosts) {
-                await this.publishPost(post);
-            }
+            // 2. Process each post in parallel
+            await Promise.all(duePosts.map(post => this.publishPost(post)));
 
         } catch (err: any) {
             logger.error('Unexpected error in scheduler tick', { error: err.message });

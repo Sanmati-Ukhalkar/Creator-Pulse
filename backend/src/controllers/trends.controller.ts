@@ -71,7 +71,12 @@ export const trendsController = {
                 return;
             }
 
-            const rawTexts = latestContent.rows.map(row => row.raw_content).filter(text => text && text.length > 50);
+            const rawTexts = latestContent.rows.reduce<string[]>((acc, row) => {
+                if (row.raw_content && row.raw_content.length > 50) {
+                    acc.push(row.raw_content);
+                }
+                return acc;
+            }, []);
 
             if (rawTexts.length === 0) {
                 res.status(400).json({ error: 'Scraped content was too short or empty.' });

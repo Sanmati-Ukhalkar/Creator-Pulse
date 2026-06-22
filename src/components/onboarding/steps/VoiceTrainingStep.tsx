@@ -71,6 +71,7 @@ export function VoiceTrainingStep() {
       // Simulate AI analysis for each platform
       for (let j = 0; j <= 100; j += 10) {
         setAnalysisProgress(j);
+        // react-doctor-disable-next-line async-await-in-loop -- False positive: sequential execution required for progress bar animation
         await new Promise(resolve => setTimeout(resolve, 200));
       }
       

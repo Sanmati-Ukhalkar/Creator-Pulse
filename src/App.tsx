@@ -17,6 +17,7 @@ import VoiceTraining from "./pages/VoiceTraining";
 import Intelligence from "./pages/Intelligence";
 import TrendDetails from "./pages/TrendDetails";
 import Workflow from "./pages/Workflow";
+import CarouselPage from "./pages/Carousel";
 import { AppLayout } from "./components/layout/AppLayout";
 import { ErrorBoundary } from "./components/layout/ErrorBoundary";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -51,6 +52,7 @@ const App = () => (
                 <Route path="/voice-training" element={<AppLayout><VoiceTraining /></AppLayout>} />
                 <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
                 <Route path="/workflow" element={<AppLayout><Workflow /></AppLayout>} />
+                <Route path="/carousel" element={<AppLayout><CarouselPage /></AppLayout>} />
               </Route>
 
               {/* Catch-all */}

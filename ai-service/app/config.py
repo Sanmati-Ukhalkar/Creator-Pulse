@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
+from pathlib import Path
 
 
 class Settings(BaseSettings):
@@ -12,6 +13,10 @@ class Settings(BaseSettings):
     OPENAI_API_KEY: str
     AI_SERVICE_KEY: str  # Shared secret for backend authentication
 
+    # Local Database Configuration
+    DATABASE_URL: str = "postgresql://postgres:postgres@localhost:5432/creator_pulse"
+    REDIS_URL: str = "redis://localhost:6379"
+
     # Optional with defaults
     OPENAI_MODEL: str = "gpt-4o-mini"
     MAX_ARTICLE_LENGTH: int = 5000
@@ -19,8 +24,9 @@ class Settings(BaseSettings):
     DEBUG: bool = False
 
     class Config:
-        env_file = ".env"
+        env_file = str(Path(__file__).parent.parent / ".env")
         case_sensitive = True
+        extra = "ignore"
 
 
 @lru_cache()

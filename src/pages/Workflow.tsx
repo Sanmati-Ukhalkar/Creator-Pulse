@@ -176,12 +176,13 @@ export default function Workflow() {
         const sourcesRes = await api.get('/sources');
         const allSources = sourcesRes.data || [];
         let inserted = 0;
-        for (const src of allSources) {
+        const results = await Promise.all(allSources.map(async (src: any) => {
           try {
             const r = await api.post('/scraper/run', { source_id: src.id, user_id: src.user_id });
-            inserted += r.data?.inserted_count || 0;
-          } catch { /* skip failed sources silently */ }
-        }
+            return r.data?.inserted_count || 0;
+          } catch { return 0; /* skip failed sources silently */ }
+        }));
+        inserted = results.reduce((sum, count) => sum + count, 0);
         setStep("scraper", { status: "done", detail: `${inserted} new item(s) ingested` });
       } catch {
         setStep("scraper", { status: "error", detail: "Scraper failed — check sources" });

@@ -20,7 +20,7 @@ pool.on('error', (err) => {
 /**
  * Cleanup function to close the pool on shutdown
  */
-export const closeDatabaseConnection = async () => {
+const closeDatabaseConnection = async () => {
     await pool.end();
     logger.info('Database connection closed');
 };

@@ -58,3 +58,12 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+
+  # ═══════════════════════════════════════════
+  # Redis (Message Queue & Quotas)
+  # ═══════════════════════════════════════════
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    restart: always
