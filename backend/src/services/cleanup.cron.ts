@@ -24,7 +24,7 @@ export const initCleanupCron = () => {
                 [staleTime]
             );
             
-            if (staleRes.rowCount > 0) {
+            if (staleRes.rowCount && staleRes.rowCount > 0) {
                 logger.info(`Cleaned up ${staleRes.rowCount} stale jobs.`);
             }
 

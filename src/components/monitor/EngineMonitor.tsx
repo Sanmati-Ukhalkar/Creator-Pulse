@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { X, ChevronDown, ChevronUp, RefreshCw, Activity, Circle, Database, Cpu, Layers, FileText, Rss, TrendingUp, AlertCircle } from "lucide-react";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
@@ -90,9 +91,8 @@ function Badge({ status }: { status: Status }) {
 
 // ─── Main Component ──────────────────────────────────────────────────────────
 
-export function EngineMonitor() {
+export function EngineMonitor({ children }: { children?: React.ReactNode }) {
   const [open, setOpen] = useState(false);
-  const [minimized, setMinimized] = useState(false);
   const [activeTab, setActiveTab] = useState<"status" | "trends" | "drafts" | "ingested" | "logs">("status");
   const [services, setServices] = useState<ServiceStatus[]>([
     { name: "Backend API", status: "unknown" },
@@ -242,182 +242,74 @@ export function EngineMonitor() {
 
   return (
     <>
-      {/* Floating trigger button */}
-      <button
-        id="engine-monitor-toggle"
-        onClick={() => { setOpen(true); setMinimized(false); }}
-        style={{
-          position: "fixed",
-          bottom: 24,
-          right: 24,
-          zIndex: 9998,
-          display: open ? "none" : "flex",
-          alignItems: "center",
-          gap: 8,
-          background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
-          border: "1px solid #334155",
-          borderRadius: 12,
-          padding: "10px 16px",
-          cursor: "pointer",
-          color: "#e2e8f0",
-          fontSize: 13,
-          fontWeight: 600,
-          fontFamily: "Inter, system-ui, sans-serif",
-          boxShadow: "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(99,102,241,0.2)",
-          transition: "all 0.2s",
-        }}
-        onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.5), 0 0 0 2px rgba(99,102,241,0.5)")}
-        onMouseLeave={e => (e.currentTarget.style.boxShadow = "0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(99,102,241,0.2)")}
-      >
-        <Activity size={15} color="#818cf8" />
-        <span>Engine Monitor</span>
-        <StatusDot status={overallStatus} />
-      </button>
-
-      {/* Monitor Panel */}
-      {open && (
-        <div
-          id="engine-monitor-panel"
-          style={{
-            position: "fixed",
-            bottom: 24,
-            right: 24,
-            zIndex: 9999,
-            width: minimized ? 260 : 520,
-            maxHeight: minimized ? 48 : "80vh",
-            background: "linear-gradient(145deg, #0a0f1e 0%, #0f172a 100%)",
-            border: "1px solid #1e3a5f",
-            borderRadius: 16,
-            boxShadow: "0 24px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(99,102,241,0.15)",
-            display: "flex",
-            flexDirection: "column",
-            fontFamily: "Inter, system-ui, sans-serif",
-            overflow: "hidden",
-            transition: "width 0.25s, max-height 0.25s",
-          }}
-        >
-          {/* Header */}
-          <div style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "10px 14px",
-            background: "linear-gradient(90deg, #1e1b4b 0%, #0f172a 100%)",
-            borderBottom: minimized ? "none" : "1px solid #1e3a5f",
-            flexShrink: 0,
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Activity size={14} color="#818cf8" />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#e2e8f0", letterSpacing: 0.3 }}>
+      <Sheet open={open} onOpenChange={setOpen}>
+        {children && <SheetTrigger asChild>{children}</SheetTrigger>}
+        <SheetContent side="left" className="w-full sm:max-w-[540px] bg-gradient-to-br from-[#0a0f1e] to-[#0f172a] border-r border-[#1e3a5f] p-0 flex flex-col font-sans shadow-2xl">
+          <SheetHeader className="p-4 border-b border-[#1e3a5f] bg-gradient-to-r from-[#1e1b4b] to-[#0f172a] shrink-0">
+            <div className="flex items-center justify-between">
+              <SheetTitle className="flex items-center gap-2 text-[#e2e8f0] text-sm tracking-wide m-0">
+                <Activity size={16} color="#818cf8" />
                 Engine Monitor
-              </span>
-              <StatusDot status={overallStatus} />
-              {lastRefresh && (
-                <span style={{ fontSize: 10, color: "#475569", marginLeft: 4 }}>
-                  {lastRefresh}
-                </span>
-              )}
+                <StatusDot status={overallStatus} />
+                {lastRefresh && (
+                  <span className="text-[10px] text-slate-500 font-normal ml-2">
+                    {lastRefresh}
+                  </span>
+                )}
+              </SheetTitle>
+              <div className="flex items-center gap-2 pr-6">
+                <button
+                  title="Refresh"
+                  onClick={runChecks}
+                  disabled={isRefreshing}
+                  className="p-1 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                >
+                  <RefreshCw size={14} className={isRefreshing ? "animate-spin" : ""} />
+                </button>
+              </div>
             </div>
-            <div style={{ display: "flex", gap: 6 }}>
+          </SheetHeader>
+
+          {/* Tabs */}
+          <div className="flex overflow-x-auto border-b border-[#1e3a5f] shrink-0 custom-scrollbar">
+            {([
+              { id: "status", label: "Status", icon: <Circle size={12} /> },
+              { id: "trends", label: `Trends (${trendsData.length})`, icon: <TrendingUp size={12} /> },
+              { id: "drafts", label: `Drafts (${draftsData.length})`, icon: <FileText size={12} /> },
+              { id: "ingested", label: `Ingested (${ingestedData.length})`, icon: <Rss size={12} /> },
+              { id: "logs", label: `Logs (${logs.length})`, icon: <Layers size={12} /> },
+            ] as const).map(tab => (
               <button
-                title="Refresh"
-                onClick={runChecks}
-                disabled={isRefreshing}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", padding: 4, borderRadius: 6, display: "flex" }}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs transition-colors whitespace-nowrap border-b-2 ${
+                  activeTab === tab.id 
+                    ? "text-indigo-400 border-indigo-400 font-semibold" 
+                    : "text-slate-400 border-transparent hover:text-slate-200"
+                }`}
               >
-                <RefreshCw size={13} style={{ animation: isRefreshing ? "spin 1s linear infinite" : "none" }} />
+                {tab.icon}
+                {tab.label}
               </button>
-              <button
-                title={minimized ? "Expand" : "Minimize"}
-                onClick={() => setMinimized(m => !m)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", padding: 4, borderRadius: 6, display: "flex" }}
-              >
-                {minimized ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
-              </button>
-              <button
-                title="Close"
-                onClick={() => setOpen(false)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#64748b", padding: 4, borderRadius: 6, display: "flex" }}
-              >
-                <X size={13} />
-              </button>
-            </div>
+            ))}
           </div>
 
-          {!minimized && (
-            <>
-              {/* Tabs */}
-              <div style={{
-                display: "flex",
-                borderBottom: "1px solid #1e3a5f",
-                flexShrink: 0,
-                overflowX: "auto",
-              }}>
-                {([
-                  { id: "status", label: "Status", icon: <Circle size={11} /> },
-                  { id: "trends", label: `Trends (${trendsData.length})`, icon: <TrendingUp size={11} /> },
-                  { id: "drafts", label: `Drafts (${draftsData.length})`, icon: <FileText size={11} /> },
-                  { id: "ingested", label: `Ingested (${ingestedData.length})`, icon: <Rss size={11} /> },
-                  { id: "logs", label: `Logs (${logs.length})`, icon: <Layers size={11} /> },
-                ] as const).map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 5,
-                      padding: "8px 12px",
-                      fontSize: 11,
-                      fontWeight: activeTab === tab.id ? 700 : 400,
-                      color: activeTab === tab.id ? "#818cf8" : "#64748b",
-                      background: "none",
-                      border: "none",
-                      borderBottom: activeTab === tab.id ? "2px solid #818cf8" : "2px solid transparent",
-                      cursor: "pointer",
-                      whiteSpace: "nowrap",
-                      transition: "color 0.15s",
-                    }}
-                  >
-                    {tab.icon}
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Body */}
-              <div style={{
-                flex: 1,
-                overflowY: "auto",
-                padding: 14,
-                minHeight: 0,
-              }}>
-                {activeTab === "status" && (
-                  <StatusTab services={services} />
-                )}
-                {activeTab === "trends" && (
-                  <DataTab data={trendsData} emptyMsg="No trends found. Try triggering research." columns={["topic", "description", "score", "created_at"]} />
-                )}
-                {activeTab === "drafts" && (
-                  <DataTab data={draftsData} emptyMsg="No drafts yet." columns={["title", "status", "content_type", "created_at"]} />
-                )}
-                {activeTab === "ingested" && (
-                  <DataTab data={ingestedData} emptyMsg="No ingested content. Check your sources & run scraper." columns={["title", "source_type", "scraped_at", "url"]} />
-                )}
-                {activeTab === "logs" && (
-                  <LogsTab logs={logs} logsEndRef={logsEndRef} />
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      )}
+          {/* Body */}
+          <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+            {activeTab === "status" && <StatusTab services={services} />}
+            {activeTab === "trends" && <DataTab data={trendsData} emptyMsg="No trends found. Try triggering research." columns={["topic", "description", "score", "created_at"]} />}
+            {activeTab === "drafts" && <DataTab data={draftsData} emptyMsg="No drafts yet." columns={["title", "status", "content_type", "created_at"]} />}
+            {activeTab === "ingested" && <DataTab data={ingestedData} emptyMsg="No ingested content. Check your sources & run scraper." columns={["title", "source_type", "scraped_at", "url"]} />}
+            {activeTab === "logs" && <LogsTab logs={logs} logsEndRef={logsEndRef} />}
+          </div>
+        </SheetContent>
+      </Sheet>
 
       <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-        #engine-monitor-panel ::-webkit-scrollbar { width: 4px; height: 4px; }
-        #engine-monitor-panel ::-webkit-scrollbar-track { background: #0f172a; }
-        #engine-monitor-panel ::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #1e3a5f; border-radius: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #334155; }
       `}</style>
     </>
   );

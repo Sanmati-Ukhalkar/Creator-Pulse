@@ -6,14 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { useOnboardingStore } from '@/store/onboardingStore';
 import { ProfileSetupStep } from './steps/ProfileSetupStep';
 import { PlatformConnectionStep } from './steps/PlatformConnectionStep';
-import { VoiceTrainingStep } from './steps/VoiceTrainingStep';
 import { DeliveryPreferencesStep } from './steps/DeliveryPreferencesStep';
 
 const steps = [
   { id: 2, title: 'Profile', description: 'Creator setup' },
   { id: 3, title: 'Content', description: 'Sample analysis' },
-  { id: 4, title: 'Voice Training', description: 'AI learning' },
-  { id: 5, title: 'Delivery', description: 'Preferences' },
+  { id: 4, title: 'Delivery', description: 'Preferences' },
 ];
 
 export function OnboardingFlow() {
@@ -27,7 +25,7 @@ export function OnboardingFlow() {
     // Initial load: set state from URL
     if (stepParam && currentStep === 1) {
       const step = parseInt(stepParam);
-      if (step >= 2 && step <= 5) {
+      if (step >= 2 && step <= 4) {
         setStep(step);
       }
     } else if (currentStep === 1) {
@@ -48,8 +46,6 @@ export function OnboardingFlow() {
       case 3:
         return <PlatformConnectionStep />;
       case 4:
-        return <VoiceTrainingStep />;
-      case 5:
         return <DeliveryPreferencesStep />;
       default:
         return <ProfileSetupStep />;

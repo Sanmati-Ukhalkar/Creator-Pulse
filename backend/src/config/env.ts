@@ -29,6 +29,9 @@ const envSchema = z.object({
 
     // Twitter (Scraper)
     TWITTER_BEARER_TOKEN: z.string().optional(),
+
+    // Tavily Search API
+    TAVILY_API_KEY: z.string().min(10).optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

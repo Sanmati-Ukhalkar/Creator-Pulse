@@ -89,6 +89,77 @@ export const generateCarousel = async (req: Request, res: Response): Promise<voi
     }
 };
 
+export const generateSmartCarousel = async (req: Request, res: Response): Promise<void> => {
+    try {
+        const userId = (req as any).user?.id;
+        if (!userId) {
+            res.status(401).json({ error: 'Unauthorized' });
+            return;
+        }
+
+        const { source_text, slide_count, template, idempotency_key } = req.body;
+        
+        if (!source_text || typeof source_text !== 'string' || source_text.length > 5000) {
+            res.status(400).json({ error: 'source_text must be a string up to 5000 characters.' });
+            return;
+        }
+
+        if (!idempotency_key || typeof idempotency_key !== 'string') {
+            res.status(400).json({ error: 'idempotency_key is required.' });
+            return;
+        }
+
+        // 1. Idempotency Check
+        const idempotencyRes = await pool.query(
+            'SELECT id FROM carousel_jobs WHERE idempotency_key = $1 AND user_id = $2',
+            [idempotency_key, userId]
+        );
+        if (idempotencyRes.rows.length > 0) {
+            res.status(202).json({ jobId: idempotencyRes.rows[0].id, existing: true });
+            return;
+        }
+
+        // 2. Atomic Quota Check via Redis
+        const today = new Date().toISOString().split('T')[0];
+        const quotaKey = `carousel_quota:${userId}:${today}`;
+        
+        const currentCount = await redisClient.incr(quotaKey);
+        if (currentCount === 1) {
+            await redisClient.expire(quotaKey, 60 * 60 * 24);
+        }
+
+        if (currentCount > DAILY_QUOTA) {
+            await redisClient.decr(quotaKey);
+            res.status(429).json({ error: 'Daily carousel generation quota exceeded.' });
+            return;
+        }
+
+        // 3. Database Insert (Map source_text to topic)
+        const insertRes = await pool.query(
+            `INSERT INTO carousel_jobs (user_id, idempotency_key, topic, status)
+             VALUES ($1, $2, $3, 'queued') RETURNING id`,
+            [userId, idempotency_key, source_text]
+        );
+        const jobId = insertRes.rows[0].id;
+
+        // 4. Enqueue Job
+        await carouselQueue.add('generate-smart', {
+            jobId,
+            userId,
+            topic: source_text,
+            slide_count,
+            template
+        }, {
+            jobId
+        });
+
+        res.status(202).json({ jobId });
+    } catch (error) {
+        logger.error('Error in generateSmartCarousel', error);
+        res.status(500).json({ error: 'Internal server error while generating smart carousel.' });
+    }
+};
+
 export const getCarouselStatus = async (req: Request, res: Response): Promise<void> => {
     try {
         const userId = (req as any).user?.id;

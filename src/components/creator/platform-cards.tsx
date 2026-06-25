@@ -36,7 +36,7 @@ export const PlatformCards = () => {
     queryKey: ['drafts-summary'],
     queryFn: async () => {
       const { data } = await api.get('/drafts');
-      return data || [];
+      return data?.data || [];
     },
     retry: false,
   });

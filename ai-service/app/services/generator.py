@@ -1,7 +1,9 @@
 import time
 import json
 import logging
+import asyncio
 from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
 from app.config import get_settings
 from app.models.schemas import (
@@ -12,6 +14,8 @@ from app.models.schemas import (
     AnalyzeTrendsResponse,
     GenerateHooksRequest,
     GenerateHooksResponse,
+    GenerateListeningQueriesRequest,
+    GenerateListeningQueriesResponse,
 )
 from app.services.article_scraper import scrape_article
 
@@ -45,8 +49,6 @@ TRENDING TOPIC: {topic}
 TOPIC DESCRIPTION: {description}
 SPECIFIC ANGLE/FOCUS: {angle}
 
-VOICE STYLE SAMPLES (match this tone and style):
-{voice_samples}
 
 REQUIREMENTS:
 1. Each hook must use a different psychological angle (e.g., Bold Claim, Pattern Interrupt, Curiosity Gap, Personal Story, Contrarian View).
@@ -64,8 +66,6 @@ TOPIC DESCRIPTION: {description}
 SOURCE ARTICLE SUMMARY: {article_content}
 CHOSEN HOOK: {hook_text}
 
-VOICE STYLE SAMPLES (match this tone and style):
-{voice_samples}
 
 REQUIREMENTS:
 1. You MUST start the post EXACTLY with the CHOSEN HOOK. Do not alter it.
@@ -89,8 +89,6 @@ TOPIC DESCRIPTION: {description}
 SOURCE ARTICLE SUMMARY: {article_content}
 CHOSEN HOOK: {hook_text}
 
-VOICE STYLE SAMPLES (match this tone and style):
-{voice_samples}
 
 REQUIREMENTS:
 1. You MUST start the post EXACTLY with the CHOSEN HOOK. Do not alter it.
@@ -135,15 +133,7 @@ async def generate_linkedin_content(request: GenerateRequest) -> GenerateRespons
         else LINKEDIN_LONG_PROMPT
     )
 
-    # Step 3: Format voice samples
-    if request.voice_samples:
-        voice_text = "\n---\n".join(request.voice_samples)
-    else:
-        voice_text = (
-            "No voice samples provided. "
-            "Use a professional, authentic LinkedIn tone — "
-            "conversational but knowledgeable."
-        )
+    # Step 3: Format voice samples (removed)
 
     # Step 4: Build and invoke LLM chain
     prompt = ChatPromptTemplate.from_template(template)
@@ -168,7 +158,6 @@ async def generate_linkedin_content(request: GenerateRequest) -> GenerateRespons
                 "content", "No article content available."
             ),
             "hook_text": hook_text,
-            "voice_samples": voice_text,
         }
     )
 
@@ -212,6 +201,151 @@ async def generate_linkedin_content(request: GenerateRequest) -> GenerateRespons
         tokens_consumed=tokens,
         processing_time_ms=processing_time,
     )
+
+
+async def stream_linkedin_content(request: GenerateRequest):
+    settings = get_settings()
+
+    article_data = {"title": "", "content": "", "word_count": 0}
+    if request.trend.source_url:
+        article_data = await scrape_article(request.trend.source_url)
+
+    template = (
+        LINKEDIN_SHORT_PROMPT
+        if request.content_type == "linkedin_short"
+        else LINKEDIN_LONG_PROMPT
+    )
+
+    prompt = ChatPromptTemplate.from_template(template)
+    llm = ChatOpenAI(
+        model=settings.OPENAI_MODEL,
+        api_key=settings.OPENAI_API_KEY,
+        temperature=0.7,
+        max_tokens=2000,
+        streaming=True
+    )
+
+    chain = prompt | llm
+
+    hook_text = request.hook_text if request.hook_text else "A strong attention grabbing hook."
+
+    async for chunk in chain.astream(
+        {
+            "topic": request.trend.topic,
+            "description": request.trend.description,
+            "article_content": article_data.get("content", "No article content available."),
+            "hook_text": hook_text,
+        }
+    ):
+        if chunk.content:
+            yield json.dumps({"chunk": chunk.content}) + "\n"
+
+async def stream_ensemble_content(request: GenerateRequest):
+    """
+    Multi-model ensemble pipeline:
+    1. Scrape source article
+    2. Fire two async tasks to Groq models (Llama 3 8B and Llama 3 70B) for distinct drafts.
+    3. Pass both drafts to an Editor model (OpenAI gpt-4o-mini) to synthesize the final post.
+    4. Stream the Editor's response.
+    """
+    settings = get_settings()
+    
+    yield json.dumps({"chunk": "🧠 Initializing Ensemble Brainstorming...\n\n"}) + "\n"
+    
+    article_data = {"title": "", "content": "", "word_count": 0}
+    if request.trend.source_url:
+        yield json.dumps({"chunk": "📄 Reading source article...\n"}) + "\n"
+        article_data = await scrape_article(request.trend.source_url)
+
+    yield json.dumps({"chunk": "🤖 Firing up Groq models for concurrent drafting...\n"}) + "\n"
+
+    # Define Groq Prompts
+    MODEL_A_PROMPT = """You are an emotional storyteller. Write a very engaging, story-driven draft about the following topic.
+TOPIC: {topic}
+DESCRIPTION: {description}
+ARTICLE SUMMARY: {article_content}
+HOOK: {hook_text}
+
+Focus on human emotion, personal experience, and storytelling. Keep it under 300 words."""
+
+    MODEL_B_PROMPT = """You are a data-driven analytical expert. Write a highly logical, structured draft about the following topic.
+TOPIC: {topic}
+DESCRIPTION: {description}
+ARTICLE SUMMARY: {article_content}
+HOOK: {hook_text}
+
+Focus on facts, structured arguments, and logical flow. Keep it under 300 words."""
+
+    # We will use Llama 3.1 8B for A, and Llama 3.3 70B for B
+    llm_a = ChatGroq(model="llama-3.1-8b-instant", api_key=settings.GROQ_API_KEY_1 or "dummy", temperature=0.9)
+    llm_b = ChatGroq(model="llama3-70b-8192", api_key=settings.GROQ_API_KEY_2 or settings.GROQ_API_KEY_1 or "dummy", temperature=0.2)
+    
+    prompt_a = ChatPromptTemplate.from_template(MODEL_A_PROMPT)
+    prompt_b = ChatPromptTemplate.from_template(MODEL_B_PROMPT)
+    
+    chain_a = prompt_a | llm_a
+    chain_b = prompt_b | llm_b
+    
+    hook_text = request.hook_text if request.hook_text else "A strong attention grabbing hook."
+    
+    input_data = {
+        "topic": request.trend.topic,
+        "description": request.trend.description,
+        "article_content": article_data.get("content", "No article content available."),
+        "hook_text": hook_text,
+    }
+    
+    # Run them concurrently
+    try:
+        results = await asyncio.gather(
+            chain_a.ainvoke(input_data),
+            chain_b.ainvoke(input_data),
+            return_exceptions=True
+        )
+        
+        draft_a = results[0].content if not isinstance(results[0], Exception) else "Failed to generate emotional draft."
+        draft_b = results[1].content if not isinstance(results[1], Exception) else "Failed to generate analytical draft."
+    except Exception as e:
+        logger.error(f"Ensemble drafting failed: {e}")
+        draft_a = "Draft A generation failed."
+        draft_b = "Draft B generation failed."
+
+    yield json.dumps({"chunk": "✨ Drafts received! Synthesizing final premium post...\n\n---\n\n"}) + "\n"
+
+    # Final Editor Phase
+    EDITOR_PROMPT = """You are a world-class LinkedIn Editor. You have received two distinct drafts from your team.
+Draft 1 (Emotional):
+{draft_a}
+
+Draft 2 (Analytical):
+{draft_b}
+
+REQUIREMENTS:
+1. Synthesize these into ONE brilliant, highly engaging LinkedIn post.
+2. Blend the emotional storytelling of Draft 1 with the structured logic of Draft 2.
+3. Start the post EXACTLY with this hook: {hook_text}
+4. Format it beautifully with short paragraphs and a clear call to action.
+5. Provide 3-5 hashtags at the bottom.
+6. The output should be just the post text itself. Do not include markdown JSON blocks, just the raw text."""
+
+    editor_prompt = ChatPromptTemplate.from_template(EDITOR_PROMPT)
+    editor_llm = ChatOpenAI(
+        model=settings.OPENAI_MODEL,
+        api_key=settings.OPENAI_API_KEY,
+        temperature=0.6,
+        streaming=True
+    )
+    
+    editor_chain = editor_prompt | editor_llm
+    
+    async for chunk in editor_chain.astream({
+        "draft_a": draft_a,
+        "draft_b": draft_b,
+        "hook_text": hook_text
+    }):
+        if chunk.content:
+            yield json.dumps({"chunk": chunk.content}) + "\n"
+
 
 
 def _parse_json_response(content: str) -> dict:
@@ -276,7 +410,6 @@ async def generate_hooks(request: GenerateHooksRequest) -> GenerateHooksResponse
     )
     chain = prompt | llm
     
-    voice_text = "\n---\n".join(request.voice_samples) if request.voice_samples else "Professional and conversational."
     angle = request.angle if request.angle else "General insightful observation."
     
     logger.info(f"Generating hooks for topic: {request.trend.topic}")
@@ -285,7 +418,6 @@ async def generate_hooks(request: GenerateHooksRequest) -> GenerateHooksResponse
         "topic": request.trend.topic,
         "description": request.trend.description,
         "angle": angle,
-        "voice_samples": voice_text,
     })
     
     parsed = _parse_json_response(result.content)
@@ -300,6 +432,55 @@ async def generate_hooks(request: GenerateHooksRequest) -> GenerateHooksResponse
     
     return GenerateHooksResponse(
         hooks=hooks,
+        tokens_consumed=tokens,
+        processing_time_ms=processing_time,
+    )
+
+LISTENING_QUERIES_PROMPT = """You are a master of web search and data aggregation.
+Your goal is to generate 3 to 5 highly optimized search queries to discover the latest, most viral, and most valuable live news, articles, and discussions for a specific creator.
+
+NICHE / INDUSTRY: {niche}
+TARGET AUDIENCE: {audience}
+
+REQUIREMENTS:
+1. Generate search queries that will return recent news, trends, or community discussions (e.g., from Reddit, major publications, or general web).
+2. Use specific keywords related to the niche.
+3. Be diverse (e.g., one query for news, one for specific subreddits using "site:reddit.com/r/...", one for general trends).
+
+OUTPUT FORMAT (respond in valid JSON only, no markdown):
+{{"queries": ["query 1", "query 2", "query 3"]}}"""
+
+async def generate_listening_queries(request: GenerateListeningQueriesRequest) -> GenerateListeningQueriesResponse:
+    """Generates optimal search queries for a given niche to be used by a live search API (e.g., Tavily)."""
+    settings = get_settings()
+    start_time = time.time()
+    
+    prompt = ChatPromptTemplate.from_template(LISTENING_QUERIES_PROMPT)
+    llm = ChatOpenAI(
+        model=settings.OPENAI_MODEL,
+        api_key=settings.OPENAI_API_KEY,
+        temperature=0.7,
+    )
+    chain = prompt | llm
+    
+    logger.info(f"Generating listening queries for niche: {request.niche}")
+    
+    result = await chain.ainvoke({
+        "niche": request.niche,
+        "audience": request.audience,
+    })
+    
+    parsed = _parse_json_response(result.content)
+    queries = parsed.get("queries", [])
+    
+    if not queries:
+        queries = [f"{request.niche} latest news", f"{request.niche} trends"]
+        
+    processing_time = int((time.time() - start_time) * 1000)
+    tokens = result.response_metadata.get("token_usage", {}).get("total_tokens", 0) if hasattr(result, "response_metadata") else 0
+    
+    return GenerateListeningQueriesResponse(
+        queries=queries,
         tokens_consumed=tokens,
         processing_time_ms=processing_time,
     )

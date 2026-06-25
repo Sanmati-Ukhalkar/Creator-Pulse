@@ -11,7 +11,8 @@ from app.services.db import get_db_pool
 
 logger = logging.getLogger(__name__)
 
-RENDER_API_URL = "http://localhost:5000/render"
+# In docker-compose, render-service runs on host 'render-service'
+RENDER_API_URL = os.getenv("RENDER_API_URL", "http://render-service:5000/render")
 STORAGE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "storage"))
 PNG_DIR = os.path.join(STORAGE_ROOT, "png_slides")
 EXPORT_DIR = os.path.join(STORAGE_ROOT, "carousel_exports")

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { OnboardingStore, UserData, ProfileSetupData, ContentSample, DeliveryPreferences, VoiceTrainingData } from '@/types/onboarding';
+import type { OnboardingStore, UserData, ProfileSetupData, ContentSample, DeliveryPreferences } from '@/types/onboarding';
 import { api } from '@/lib/api';
 
 const initialState = {
@@ -18,7 +18,6 @@ const initialState = {
     channels: ['email'],
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
   },
-  voiceTraining: [],
   isLoading: false,
   error: undefined,
 };
@@ -55,24 +54,13 @@ export const useOnboardingStore = create<OnboardingStore>()(
           deliveryPrefs: { ...state.deliveryPrefs, ...prefs }
         })),
 
-      updateVoiceTraining: (data) =>
-        set((state) => {
-          const existing = state.voiceTraining.findIndex(v => v.platform === data.platform);
-          if (existing >= 0) {
-            const updated = [...state.voiceTraining];
-            updated[existing] = data;
-            return { voiceTraining: updated };
-          }
-          return { voiceTraining: [...state.voiceTraining, data] };
-        }),
-
-      setLoading: (loading) => set({ isLoading: loading }),
+          setLoading: (loading) => set({ isLoading: loading }),
 
       setError: (error) => set({ error }),
 
       nextStep: () =>
         set((state) => ({
-          currentStep: Math.min(state.currentStep + 1, 5)
+          currentStep: Math.min(state.currentStep + 1, 4)
         })),
 
       prevStep: () =>
@@ -131,7 +119,6 @@ export const useOnboardingStore = create<OnboardingStore>()(
         profileData: state.profileData,
         contentSamples: state.contentSamples,
         deliveryPrefs: state.deliveryPrefs,
-        voiceTraining: state.voiceTraining,
       }),
     }
   )

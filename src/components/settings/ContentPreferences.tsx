@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -7,7 +7,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { Palette, MessageSquare, FileText, Filter, Save, Plus, X } from "lucide-react";
+import { Palette, MessageSquare, FileText, Filter, Save, Plus, X, Globe } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { api } from "@/lib/api";
+import { toast } from "sonner";
 
 export function ContentPreferences() {
   const [tone, setTone] = useState("professional");
@@ -16,6 +19,41 @@ export function ContentPreferences() {
   const [newKeyword, setNewKeyword] = useState("");
   const [filterAdult, setFilterAdult] = useState(true);
   const [filterSpam, setFilterSpam] = useState(true);
+  
+  // Live Data Niche settings
+  const [niche, setNiche] = useState("");
+  const [targetAudience, setTargetAudience] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      try {
+        const response = await api.get('/profile');
+        if (response.data) {
+          setNiche(response.data.niche || "");
+          setTargetAudience(response.data.target_audience || "");
+        }
+      } catch (err) {
+        console.error('Failed to load profile', err);
+      }
+    };
+    loadProfile();
+  }, []);
+
+  const savePreferences = async () => {
+    setIsSaving(true);
+    try {
+      await api.put('/profile/niche', {
+        niche: niche,
+        target_audience: targetAudience
+      });
+      toast.success("Preferences saved! Live data engine is generating queries.");
+    } catch (e) {
+      toast.error("Failed to save preferences");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const addKeyword = () => {
     if (newKeyword.trim() && !keywords.includes(newKeyword.trim())) {
@@ -30,6 +68,40 @@ export function ContentPreferences() {
 
   return (
     <div className="space-y-6">
+      {/* Live Data Engine / Niche */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            Live Data Engine Settings
+          </CardTitle>
+          <CardDescription>
+            Define your niche to automatically pull real-time news, Reddit discussions, and web trends.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="niche">Your Niche / Industry</Label>
+            <Input 
+              id="niche"
+              placeholder="e.g. B2B SaaS Sales, AI in Healthcare, PropTech"
+              value={niche}
+              onChange={(e) => setNiche(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">The AI will use this to find the most relevant live events happening in the world today.</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="targetAudience">Target Audience</Label>
+            <Input 
+              id="targetAudience"
+              placeholder="e.g. Startup Founders, Junior Developers"
+              value={targetAudience}
+              onChange={(e) => setTargetAudience(e.target.value)}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Draft Preferences */}
       <Card>
         <CardHeader>
@@ -223,9 +295,9 @@ export function ContentPreferences() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button className="bg-creator-gradient hover:bg-creator-gradient-secondary">
+        <Button onClick={savePreferences} disabled={isSaving} className="bg-creator-gradient hover:bg-creator-gradient-secondary">
           <Save className="h-4 w-4 mr-2" />
-          Save Preferences
+          {isSaving ? "Saving..." : "Save Preferences"}
         </Button>
       </div>
     </div>

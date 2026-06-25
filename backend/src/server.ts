@@ -22,9 +22,11 @@ import ingestedContentRoutes from './routes/ingested_content.routes';
 import deliveryRoutes from './routes/delivery.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import carouselRoutes from './routes/carousel.routes';
+import imageRoutes from './routes/image.routes';
 import { schedulerService } from './services/scheduler.service';
 import { analyticsWorker } from './services/analytics.worker';
 import { initCleanupCron } from './services/cleanup.cron';
+import { startPulseWorker } from './workers/pulse.worker';
 
 const app = express();
 
@@ -70,6 +72,7 @@ app.use('/api/ingested-contents', ingestedContentRoutes);
 app.use('/api/delivery', deliveryRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/carousel', carouselRoutes);
+app.use('/api/generate-image', imageRoutes);
 
 // Temporary test route — verifies auth middleware is working
 app.get('/api/me', authMiddleware, (req, res) => {
@@ -105,6 +108,9 @@ const server = app.listen(env.PORT, () => {
 
     // Initialize Carousel Storage and DB Cleanup Cron (Daily)
     initCleanupCron();
+
+    // Initialize Live Data Pulse Worker
+    startPulseWorker();
 
     logger.info(`🔧 Environment: ${env.NODE_ENV}`);
 });

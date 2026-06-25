@@ -11,11 +11,30 @@ export const draftsController = {
     async getAll(req: Request, res: Response) {
         try {
             const userId = req.user!.id;
-            const result = await pool.query(
-                'SELECT * FROM drafts WHERE user_id = $1 ORDER BY created_at DESC',
-                [userId]
-            );
-            res.json(result.rows);
+            const limit = parseInt(req.query.limit as string) || 50;
+            const offset = parseInt(req.query.offset as string) || 0;
+
+            const [draftsResult, countResult] = await Promise.all([
+                pool.query(
+                    'SELECT * FROM drafts WHERE user_id = $1 ORDER BY created_at DESC LIMIT $2 OFFSET $3',
+                    [userId, limit, offset]
+                ),
+                pool.query(
+                    'SELECT COUNT(*) FROM drafts WHERE user_id = $1',
+                    [userId]
+                )
+            ]);
+
+            const total = parseInt(countResult.rows[0].count, 10);
+            
+            res.json({
+                data: draftsResult.rows,
+                pagination: {
+                    total,
+                    limit,
+                    offset
+                }
+            });
         } catch (error: any) {
             logger.error('Error fetching drafts', { error: error.message });
             res.status(500).json({ error: 'Failed to fetch drafts' });

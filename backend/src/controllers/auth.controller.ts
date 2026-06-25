@@ -7,6 +7,8 @@ import { env } from '../config/env';
 import { logger } from '../utils/logger';
 
 const registerSchema = z.object({
+    firstName: z.string().min(2),
+    lastName: z.string().min(2),
     email: z.string().email(),
     password: z.string().min(8),
 });
@@ -22,7 +24,7 @@ export const authController = {
      */
     async register(req: Request, res: Response): Promise<void> {
         try {
-            const { email, password } = registerSchema.parse(req.body);
+            const { firstName, lastName, email, password } = registerSchema.parse(req.body);
 
             // Check if user exists
             const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
@@ -42,6 +44,13 @@ export const authController = {
             );
 
             const user = result.rows[0];
+
+            // Create initial profile
+            const fullName = `${firstName} ${lastName}`.trim();
+            await pool.query(
+                'INSERT INTO creator_profiles (user_id, email, full_name, updated_at) VALUES ($1, $2, $3, NOW())',
+                [user.id, user.email, fullName]
+            );
 
             // Generate token
             const token = jwt.sign({ id: user.id, email: user.email }, env.JWT_SECRET, { expiresIn: '7d' });

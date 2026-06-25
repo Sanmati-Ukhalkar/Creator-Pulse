@@ -41,11 +41,31 @@ export const publishController = {
                 return;
             }
 
+            // Check if draft has an image in its metadata
+            let imageToPublish: { b64: string; format: string } | undefined = undefined;
+            if (req.body.draft_id) {
+                const draftResult = await pool.query(
+                    `SELECT metadata FROM drafts WHERE id = $1 AND user_id = $2`,
+                    [req.body.draft_id, userId]
+                );
+                if (draftResult.rows.length > 0) {
+                    const metadata = draftResult.rows[0].metadata || {};
+                    if (metadata.image_b64) {
+                        logger.info('Found image in draft metadata. Will attach to LinkedIn post.', { draftId: req.body.draft_id });
+                        imageToPublish = {
+                            b64: metadata.image_b64,
+                            format: metadata.image_format || 'jpeg',
+                        };
+                    }
+                }
+            }
+
             // 3. Post to LinkedIn
             const result = await linkedinService.createPost(
                 accessToken,
                 connection.platform_user_id,
-                content
+                content,
+                imageToPublish
             );
 
             // 4. Log the published post

@@ -44,6 +44,16 @@ export default function CarouselPage() {
     };
 
     useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const urlJobId = params.get('jobId');
+        if (urlJobId) {
+            setJobId(urlJobId);
+            setStatus('queued');
+            setTopic("Generating Smart Carousel...");
+        }
+    }, []);
+
+    useEffect(() => {
         if (!jobId || status === 'done' || status === 'failed') return;
         
         const interval = setInterval(async () => {

@@ -25,6 +25,10 @@ interface Draft {
       shares?: number;
     };
     ai_suggestions?: string[];
+    image_b64?: string;
+    image_format?: string;
+    image_provider?: string;
+    image_prompt?: string;
   };
   metrics?: {
     likes?: number;
@@ -170,6 +174,20 @@ export function DraftCard({ draft, onEdit, onSchedule, onDelete, onDuplicate }: 
       </CardHeader>
 
       <CardContent className="pt-0">
+        {/* ── Image Thumbnail (if generated) ── */}
+        {draft.metadata?.image_b64 && (
+          <div className="relative rounded-lg overflow-hidden bg-muted aspect-[1.91/1] w-full mb-3">
+            <img
+              src={`data:image/${draft.metadata.image_format || 'jpeg'};base64,${draft.metadata.image_b64}`}
+              alt="AI banner"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute top-1.5 right-1.5 bg-black/50 text-white text-[9px] px-1.5 py-0.5 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+              {draft.metadata.image_provider === 'gemini' ? '✨ Gemini' : '⚡ Flux'}
+            </div>
+          </div>
+        )}
+
         {/* Content preview */}
         <div className="space-y-3">
           {contentText && (

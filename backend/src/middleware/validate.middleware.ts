@@ -37,7 +37,7 @@ export const generateContentSchema = z.object({
     hook_text: z.string().optional().nullable(),
     angle: z.string().optional().nullable(),
     keywords: z.array(z.string()).max(20).default([]),
-    voice_samples: z.array(z.string().max(3000)).max(10).default([]),
+
     content_type: z.enum(['linkedin_short', 'linkedin_long']).default('linkedin_short'),
 });
 

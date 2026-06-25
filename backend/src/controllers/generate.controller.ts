@@ -32,7 +32,6 @@ export const generateController = {
                     keywords: body.keywords,
                 },
                 hook_text: req.body.hook_text, // Get the exact hook selected by user if provided
-                voice_samples: body.voice_samples,
                 content_type: body.content_type,
                 platform: 'linkedin',
             });
@@ -79,6 +78,79 @@ export const generateController = {
     },
 
     /**
+     * POST /api/generate/stream
+     * Streams LinkedIn content and saves the draft when complete.
+     */
+    async generateStream(req: Request, res: Response): Promise<void> {
+        const body = req.validatedBody as GenerateContentInput;
+        const userId = req.user!.id;
+
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+
+        try {
+            logger.info('Content stream requested', { userId, topic: body.topic.substring(0, 50) });
+
+            let fullContent = '';
+
+            await aiService.generateContentStream(
+                {
+                    trend: {
+                        topic: body.topic,
+                        description: body.description,
+                        source_url: body.source_url || undefined,
+                        keywords: body.keywords,
+                    },
+                    hook_text: req.body.hook_text,
+                    content_type: body.content_type,
+                    platform: 'linkedin',
+                },
+                (chunkStr) => {
+                    // The python generator yields: json.dumps({"chunk": chunk.content}) + "\n"
+                    // We forward this as SSE.
+                    const lines = chunkStr.split('\n').filter(Boolean);
+                    for (const line of lines) {
+                        try {
+                            const parsed = JSON.parse(line);
+                            if (parsed.chunk) {
+                                fullContent += parsed.chunk;
+                                res.write(`data: ${JSON.stringify({ chunk: parsed.chunk })}\n\n`);
+                            }
+                        } catch (e) {
+                            // Ignored or log
+                        }
+                    }
+                }
+            );
+
+            // Step 4: Full Post Drafting - Saving to DB automatically
+            const draftContent = {
+                text: fullContent,
+                hashtags: [], 
+                mentions: []
+            };
+
+            const draftInsert = await pool.query(
+                `INSERT INTO drafts (user_id, platform, content_type, title, content, status, created_at, updated_at)
+                 VALUES ($1, $2, $3, $4, $5, 'draft', NOW(), NOW())
+                 RETURNING id`,
+                [userId, 'linkedin', body.content_type, body.topic.substring(0, 100), JSON.stringify(draftContent)]
+            );
+
+            logger.info('Stream generated successfully and saved to drafts', { userId, draftId: draftInsert.rows[0].id });
+
+            // Send a final message with the draft_id so frontend knows it finished
+            res.write(`data: ${JSON.stringify({ draft_id: draftInsert.rows[0].id, done: true })}\n\n`);
+            res.end();
+        } catch (err: any) {
+            logger.error('Content stream failed', { error: err.message, userId });
+            res.write(`data: ${JSON.stringify({ error: 'Content generation failed', details: err.message })}\n\n`);
+            res.end();
+        }
+    },
+
+    /**
      * POST /api/generate/hooks
      * Accepts a topic and generates 3-5 distinct hooks.
      */
@@ -98,7 +170,6 @@ export const generateController = {
                     keywords: body.keywords,
                 },
                 angle: angle,
-                voice_samples: body.voice_samples,
             });
 
             res.json({

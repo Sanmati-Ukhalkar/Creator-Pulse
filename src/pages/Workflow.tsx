@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -61,24 +62,22 @@ function statusBadge(status: StepStatus) {
 
 export default function Workflow() {
   const { toast } = useToast();
-  const [stats, setStats] = useState<PipelineStats>({ sources: 0, ingested: 0, trends: 0, drafts: 0, published: 0 });
-  const [isLoadingStats, setIsLoadingStats] = useState(true);
   const [runningPipeline, setRunningPipeline] = useState(false);
   const [pipelineProgress, setPipelineProgress] = useState(0);
 
   const [steps, setSteps] = useState<PipelineStep[]>([
     {
       id: "sources",
-      label: "Content Sources",
-      description: "RSS feeds, Twitter/X accounts configured as data sources",
+      label: "Live Data Sources",
+      description: "RSS feeds, Twitter/X accounts, and Live Search Queries based on your Niche",
       icon: <Rss className="h-5 w-5" />,
       color: "#f97316",
       status: "idle",
     },
     {
       id: "scraper",
-      label: "Scraper / Ingestion",
-      description: "Pulls articles and posts from all active sources into the database",
+      label: "Scraper & Pulse Worker",
+      description: "Pulls articles and real-time live data from all active sources into the database",
       icon: <Database className="h-5 w-5" />,
       color: "#a78bfa",
       status: "idle",
@@ -122,9 +121,9 @@ export default function Workflow() {
     setSteps(prev => prev.map(s => s.id === id ? { ...s, ...patch } : s));
   }, []);
 
-  const loadStats = useCallback(async () => {
-    setIsLoadingStats(true);
-    try {
+  const { data: statsData, isLoading: isLoadingStats, refetch } = useQuery({
+    queryKey: ['workflow-stats'],
+    queryFn: async () => {
       const [sourcesRes, ingestedRes, trendsRes, draftsRes] = await Promise.allSettled([
         api.get('/sources'),
         api.get('/ingested-contents'),
@@ -135,25 +134,34 @@ export default function Workflow() {
       const sources  = sourcesRes.status  === 'fulfilled' ? (sourcesRes.value.data?.length  ?? 0) : 0;
       const ingested = ingestedRes.status === 'fulfilled' ? (ingestedRes.value.data?.length ?? 0) : 0;
       const trends   = trendsRes.status   === 'fulfilled' ? (trendsRes.value.data?.length   ?? 0) : 0;
-      const drafts   = draftsRes.status   === 'fulfilled' ? (draftsRes.value.data?.length   ?? 0) : 0;
+      
+      let drafts = 0;
+      if (draftsRes.status === 'fulfilled') {
+        drafts = draftsRes.value.data?.pagination?.total ?? draftsRes.value.data?.length ?? 0;
+      }
 
-      setStats({ sources, ingested, trends, drafts, published: 0 });
+      return { sources, ingested, trends, drafts, published: 0 };
+    },
+    staleTime: 30_000
+  });
 
-      // Update step counts
+  const stats = statsData || { sources: 0, ingested: 0, trends: 0, drafts: 0, published: 0 };
+
+  useEffect(() => {
+    if (statsData && !runningPipeline) {
+      const { sources, ingested, trends, drafts } = statsData;
       setStep("sources",    { status: sources  > 0 ? "done" : "idle",  count: sources,  detail: `${sources} active source(s)` });
       setStep("scraper",    { status: ingested > 0 ? "done" : "idle",  count: ingested, detail: `${ingested} item(s) ingested` });
       setStep("ai_analysis",{ status: trends   > 0 ? "done" : "idle",  count: trends,   detail: `${trends} trend(s) extracted` });
       setStep("drafts",     { status: drafts   > 0 ? "done" : "idle",  count: drafts,   detail: `${drafts} draft(s) saved` });
       setStep("generation", { status: drafts   > 0 ? "done" : "idle",  detail: drafts > 0 ? "Generation complete" : "Waiting for trends" });
       setStep("publish",    { status: "idle", detail: "Connect LinkedIn to enable" });
-    } catch (e) {
-      console.error("Failed to load stats", e);
-    } finally {
-      setIsLoadingStats(false);
     }
-  }, [setStep]);
+  }, [statsData, setStep, runningPipeline]);
 
-  useEffect(() => { loadStats(); }, [loadStats]);
+  const loadStats = async () => {
+    await refetch();
+  };
 
   // Run full pipeline
   const runPipeline = async () => {
@@ -211,7 +219,7 @@ export default function Workflow() {
       setStep("drafts", { status: "running", detail: "Refreshing drafts…" });
       try {
         const draftsRes = await api.get('/drafts');
-        const count = draftsRes.data?.length ?? 0;
+        const count = draftsRes.data?.pagination?.total ?? draftsRes.data?.length ?? 0;
         setStep("drafts", { status: count > 0 ? "done" : "idle", detail: `${count} draft(s) available`, count });
       } catch {
         setStep("drafts", { status: "error", detail: "Could not load drafts" });

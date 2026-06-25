@@ -11,7 +11,10 @@ export const profileController = {
         try {
             const userId = req.user!.id;
             const result = await pool.query(
-                'SELECT * FROM creator_profiles WHERE user_id = $1',
+                `SELECT cp.*, u.niche, u.target_audience 
+                 FROM creator_profiles cp 
+                 RIGHT JOIN users u ON cp.user_id = u.id 
+                 WHERE u.id = $1`,
                 [userId]
             );
 
@@ -35,22 +38,34 @@ export const profileController = {
     async updateProfile(req: Request, res: Response) {
         try {
             const userId = req.user!.id;
-            const { full_name, email, industry, creator_type, platforms, timezone } = req.body;
+            const { full_name, email, creator_handle, bio, industry, creator_type, platforms, timezone } = req.body;
 
             // Upsert profile
             const result = await pool.query(
-                `INSERT INTO creator_profiles (user_id, full_name, email, industry, creator_type, platforms, timezone, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+                `INSERT INTO creator_profiles (user_id, full_name, email, creator_handle, bio, industry, creator_type, platforms, timezone, updated_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
                  ON CONFLICT (user_id) DO UPDATE SET
                     full_name = COALESCE(EXCLUDED.full_name, creator_profiles.full_name),
                     email = COALESCE(EXCLUDED.email, creator_profiles.email),
+                    creator_handle = COALESCE(EXCLUDED.creator_handle, creator_profiles.creator_handle),
+                    bio = COALESCE(EXCLUDED.bio, creator_profiles.bio),
                     industry = COALESCE(EXCLUDED.industry, creator_profiles.industry),
                     creator_type = COALESCE(EXCLUDED.creator_type, creator_profiles.creator_type),
                     platforms = COALESCE(EXCLUDED.platforms, creator_profiles.platforms),
                     timezone = COALESCE(EXCLUDED.timezone, creator_profiles.timezone),
                     updated_at = NOW()
                  RETURNING *`,
-                [userId, full_name, email, industry, creator_type, platforms, timezone]
+                [
+                    userId, 
+                    full_name !== undefined ? full_name : null, 
+                    email !== undefined ? email : null, 
+                    creator_handle !== undefined ? creator_handle : null,
+                    bio !== undefined ? bio : null,
+                    industry !== undefined ? industry : null, 
+                    creator_type !== undefined ? creator_type : null, 
+                    platforms !== undefined ? platforms : null, 
+                    timezone !== undefined ? timezone : null
+                ]
             );
 
             res.json(result.rows[0]);
@@ -130,6 +145,36 @@ export const profileController = {
             res.status(500).json({ error: 'Failed to complete onboarding' });
         } finally {
             client.release();
+        }
+    },
+
+    /**
+     * PUT /api/profile/niche
+     * Update user niche and generate listening queries
+     */
+    async updateNiche(req: Request, res: Response) {
+        try {
+            const userId = req.user!.id;
+            const { niche, target_audience } = req.body;
+
+            // Update user table
+            await pool.query(
+                `UPDATE users SET niche = $1, target_audience = $2, updated_at = NOW() WHERE id = $3`,
+                [niche, target_audience, userId]
+            );
+
+            // Import dynamically to avoid circular dependencies if any, though it should be fine
+            const { liveSearchService } = require('../services/live_search.service');
+            
+            // Generate queries in the background (fire and forget)
+            liveSearchService.generateAndRunQueries(userId, niche, target_audience).catch((err: any) => {
+                logger.error('Background liveSearchService error', { error: err.message });
+            });
+
+            res.json({ success: true, message: 'Niche updated, listening queries are being generated.' });
+        } catch (error: any) {
+            logger.error('Error updating niche', { error: error.message });
+            res.status(500).json({ error: 'Failed to update niche' });
         }
     }
 };

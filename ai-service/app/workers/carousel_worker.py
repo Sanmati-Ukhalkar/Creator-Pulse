@@ -49,6 +49,10 @@ async def process_carousel_job(job: Job, token: str):
             await conn.execute("UPDATE carousel_jobs SET status = 'planning' WHERE id = $1", job_id)
             planner_prompt = load_prompt("carousel_planner.txt")
             
+            if job.name == 'generate-smart':
+                slide_count = job.data.get('slide_count', 6)
+                planner_prompt = planner_prompt.replace("5-6 slide narrative sequence", f"exactly {slide_count} slide narrative sequence")
+            
             planner_context = f"Topic: {topic}\nAngle: {brain_parsed.angle}\nTone: {brain_parsed.tone}\nAudience: {brain_parsed.target_audience}"
             res_planner = await llm_strong.ainvoke([
                 SystemMessage(content=planner_prompt),

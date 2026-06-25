@@ -12,7 +12,7 @@ export const ContentPipeline = () => {
     queryKey: ['pipeline-drafts'],
     queryFn: async () => {
       const { data } = await api.get('/drafts');
-      return (data || []).slice(0, 4); // Show latest 4
+      return (data?.data || []).slice(0, 4); // Show latest 4
     },
     retry: false,
   });

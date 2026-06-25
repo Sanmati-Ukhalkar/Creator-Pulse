@@ -9,6 +9,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Wand2,
@@ -18,11 +26,13 @@ import {
   FileEdit,
   Check,
   ChevronRight,
+  LayoutTemplate,
 } from "lucide-react";
-import { useContentGeneration } from "@/hooks/useContentGeneration";
+import { useContentGeneration, streamContentGeneration } from "@/hooks/useContentGeneration";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { PostImagePanel } from "./PostImagePanel";
 
 interface ContentGenerationFormProps {
   topicId?: string;
@@ -58,6 +68,7 @@ export const ContentGenerationForm = ({
     initialContentType || "text_post",
   );
   const [prompt, setPrompt] = useState("");
+  const [useEnsemble, setUseEnsemble] = useState(false);
 
   // Pipeline State
   const [step, setStep] = useState<"setup" | "hooks" | "result">("setup");
@@ -72,6 +83,16 @@ export const ContentGenerationForm = ({
 
   // Publishing State
   const [isPublishing, setIsPublishing] = useState(false);
+
+  // Smart Carousel State
+  const [showCarouselDialog, setShowCarouselDialog] = useState(false);
+  const [carouselSlideCount, setCarouselSlideCount] = useState("6");
+  const [carouselTemplate, setCarouselTemplate] = useState("dark_modern");
+  const [isGeneratingCarousel, setIsGeneratingCarousel] = useState(false);
+
+  // Generated Image State
+  const [generatedImageB64, setGeneratedImageB64] = useState<string | null>(null);
+  const [generatedImageFormat, setGeneratedImageFormat] = useState<string>("jpeg");
 
   const platforms = [
     { value: "linkedin", label: "LinkedIn" },
@@ -107,26 +128,39 @@ export const ContentGenerationForm = ({
   const handleGenerateFullPost = async () => {
     if (!selectedHookText) return;
 
-    try {
-      const result = await generateContentAsync({
-        topic: topicTitle || "General Topic",
-        description:
-          prompt ||
-          topicDescription ||
-          "Write a professional post about this topic.",
-        platform,
-        contentType,
-        hookText: selectedHookText,
-        keywords: [],
-      });
+    setGeneratedContent("");
+    setStep("result"); // Switch to result view immediately to see stream
+    setIsPublishing(false); // We can reuse isPublishing as a "generating" state for the button or we can use another state
 
-      if (result?.data?.content) {
-        setGeneratedContent(result.data.content);
-        setGeneratedDraftId(result.data.draft_id);
-        setStep("result");
-      }
+    try {
+      await streamContentGeneration(
+        {
+          topic: topicTitle || "General Topic",
+          description:
+            prompt ||
+            topicDescription ||
+            "Write a professional post about this topic.",
+          platform,
+          contentType,
+          hookText: selectedHookText,
+          keywords: [],
+          useEnsemble,
+        },
+        (chunk) => {
+          setGeneratedContent((prev) => (prev || "") + chunk);
+        },
+        (draftId) => {
+          setGeneratedDraftId(draftId);
+          toast.success("Content generation complete!");
+        },
+        (error) => {
+          toast.error("Stream error: " + (error.message || error));
+          setStep("hooks"); // rollback on error
+        }
+      );
     } catch (error) {
-      // Handled in hook
+      toast.error("Failed to start generation");
+      setStep("hooks");
     }
   };
 
@@ -156,6 +190,27 @@ export const ContentGenerationForm = ({
     if (onSuccess) onSuccess();
   };
 
+  const handleGenerateCarousel = async () => {
+    if (!generatedContent) return;
+    setIsGeneratingCarousel(true);
+    try {
+      const response = await api.post('/carousel/generate-smart', {
+        source_text: generatedContent,
+        slide_count: parseInt(carouselSlideCount, 10),
+        template: carouselTemplate,
+        idempotency_key: `smart-carousel-${Date.now()}`
+      });
+      if (response.data?.jobId) {
+        toast.success("Carousel generation started!");
+        window.location.href = `/carousel?jobId=${response.data.jobId}`;
+      }
+    } catch (e: any) {
+      toast.error(e.response?.data?.error || "Failed to start carousel generation");
+    } finally {
+      setIsGeneratingCarousel(false);
+    }
+  };
+
   // If content is generated, show the RESULT view
   if (step === "result" && generatedContent) {
     return (
@@ -173,16 +228,35 @@ export const ContentGenerationForm = ({
             className="min-h-[300px] font-mono text-sm leading-relaxed"
           />
 
+          {/* ── AI Image Panel ── appears as soon as draft is saved ── */}
+          <PostImagePanel
+            postText={generatedContent || ""}
+            topic={topicTitle || "General Topic"}
+            draftId={generatedDraftId}
+            onImageGenerated={(b64, fmt) => {
+              setGeneratedImageB64(b64);
+              setGeneratedImageFormat(fmt);
+            }}
+          />
+
           <div className="flex gap-3 justify-end">
-            <Button variant="outline" onClick={() => setStep("hooks")}>
+            <Button variant="outline" onClick={() => setStep("hooks")} disabled={!generatedDraftId}>
               Back to Hooks
             </Button>
-            <Button variant="secondary" onClick={handleSaveDraft}>
+            <Button variant="secondary" onClick={handleSaveDraft} disabled={!generatedDraftId}>
               Save Draft
             </Button>
             <Button
+              onClick={() => setShowCarouselDialog(true)}
+              className="bg-creator-violet hover:bg-creator-violet/90 text-white"
+              disabled={!generatedDraftId}
+            >
+              <LayoutTemplate className="mr-2 h-4 w-4" />
+              Turn into Carousel
+            </Button>
+            <Button
               onClick={handlePublish}
-              disabled={isPublishing}
+              disabled={isPublishing || !generatedDraftId}
               className="bg-[#0077b5] hover:bg-[#006097] text-white"
             >
               {isPublishing ? (
@@ -194,6 +268,58 @@ export const ContentGenerationForm = ({
             </Button>
           </div>
         </CardContent>
+
+        <Dialog open={showCarouselDialog} onOpenChange={setShowCarouselDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-creator-violet" />
+                Smart Carousel Settings
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Slide Count</Label>
+                <Select value={carouselSlideCount} onValueChange={setCarouselSlideCount}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select slide count" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="4">4 Slides</SelectItem>
+                    <SelectItem value="5">5 Slides</SelectItem>
+                    <SelectItem value="6">6 Slides</SelectItem>
+                    <SelectItem value="7">7 Slides</SelectItem>
+                    <SelectItem value="8">8 Slides</SelectItem>
+                    <SelectItem value="9">9 Slides</SelectItem>
+                    <SelectItem value="10">10 Slides</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Template Style</Label>
+                <Select value={carouselTemplate} onValueChange={setCarouselTemplate}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select template" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="dark_modern">Dark Modern (Default)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCarouselDialog(false)}>Cancel</Button>
+              <Button onClick={handleGenerateCarousel} disabled={isGeneratingCarousel} className="bg-creator-violet text-white">
+                {isGeneratingCarousel ? (
+                  <Wand2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <LayoutTemplate className="mr-2 h-4 w-4" />
+                )}
+                Generate Carousel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </Card>
     );
   }
@@ -299,6 +425,22 @@ export const ContentGenerationForm = ({
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+          <div className="space-y-0.5">
+            <Label className="text-base font-medium flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-creator-violet" />
+              Use Ensemble Brainstorming
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Queries multiple open-source AI models simultaneously to gather diverse perspectives before writing.
+            </p>
+          </div>
+          <Switch
+            checked={useEnsemble}
+            onCheckedChange={setUseEnsemble}
+          />
         </div>
 
         <div className="space-y-2">

@@ -9,7 +9,6 @@ interface GenerateRequest {
         source_url?: string;
         keywords?: string[];
     };
-    voice_samples: string[];
     hook_text?: string;
     content_type: 'linkedin_short' | 'linkedin_long';
     platform: string;
@@ -40,7 +39,6 @@ export interface GenerateHooksRequest {
         keywords?: string[];
     };
     angle?: string;
-    voice_samples: string[];
 }
 
 export interface HookResult {
@@ -116,6 +114,47 @@ export const aiService = {
             }
 
             throw new Error(`AI service error: ${detail}`);
+        }
+    },
+
+    async generateContentStream(request: GenerateRequest, onData: (chunk: string) => void): Promise<void> {
+        try {
+            logger.info('Calling AI service stream', {
+                topic: request.trend.topic,
+                contentType: request.content_type,
+            });
+
+            const response = await axios.post(
+                `${env.AI_SERVICE_URL}/generate-stream`,
+                request,
+                {
+                    headers: {
+                        'X-API-Key': env.AI_SERVICE_KEY || '',
+                        'Content-Type': 'application/json',
+                    },
+                    responseType: 'stream',
+                    timeout: 60000,
+                }
+            );
+
+            return new Promise((resolve, reject) => {
+                response.data.on('data', (chunk: Buffer) => {
+                    const chunkStr = chunk.toString();
+                    onData(chunkStr);
+                });
+                response.data.on('end', () => {
+                    resolve();
+                });
+                response.data.on('error', (err: any) => {
+                    reject(err);
+                });
+            });
+        } catch (error: any) {
+            const status = error.response?.status;
+            const detail = error.response?.data?.detail || error.message;
+
+            logger.error('AI service stream call failed', { status, detail });
+            throw new Error(`AI service stream error: ${detail}`);
         }
     },
 
