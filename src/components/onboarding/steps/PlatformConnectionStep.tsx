@@ -88,7 +88,7 @@ export function PlatformConnectionStep() {
       <div className="text-center">
         <h2 className="text-2xl font-bold mb-2">Connect your best content</h2>
         <p className="text-gray-400">
-          Share 3+ high-performing posts from each platform to train your AI voice
+          Share 3+ high-performing posts from each platform to help AI understand your content style
         </p>
       </div>
 
@@ -266,7 +266,7 @@ export function PlatformConnectionStep() {
             disabled={!allPlatformsReady || isLoading}
             className="bg-gradient-to-r from-cyan-500 to-violet-500 hover:from-cyan-600 hover:to-violet-600"
           >
-            {isLoading ? 'Analyzing...' : 'Continue to Voice Training'}
+            {isLoading ? 'Analyzing...' : 'Continue to Delivery Preferences'}
           </Button>
         </div>
       </div>

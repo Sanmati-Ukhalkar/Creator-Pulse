@@ -4,23 +4,8 @@ import { linkedinService } from '../services/linkedin.service';
 import pool from '../config/database';
 import { logger } from '../utils/logger';
 
-/**
- * In-memory OAuth state store (CSRF protection).
- *
- * For MVP, this is fine. In production, use Redis with TTL.
- * States expire after 10 minutes and are single-use.
- */
-const oauthStates = new Map<string, { userId: string; expiresAt: number }>();
-
-// Cleanup expired states every 5 minutes
-setInterval(() => {
-    const now = Date.now();
-    for (const [state, data] of oauthStates.entries()) {
-        if (data.expiresAt < now) {
-            oauthStates.delete(state);
-        }
-    }
-}, 5 * 60 * 1000);
+import jwt from 'jsonwebtoken';
+import { env } from '../config/env';
 
 export const linkedinController = {
     /**
@@ -32,12 +17,13 @@ export const linkedinController = {
      */
     async getAuthUrl(req: Request, res: Response): Promise<void> {
         try {
-            const state = crypto.randomBytes(32).toString('hex');
-
-            oauthStates.set(state, {
-                userId: req.user!.id,
-                expiresAt: Date.now() + 10 * 60 * 1000, // 10 minute expiry
-            });
+            // Encode userId into a 10-minute JWT to be used as the state parameter.
+            // This is stateless and survives server restarts perfectly.
+            const state = jwt.sign(
+                { userId: req.user!.id }, 
+                env.JWT_SECRET, 
+                { expiresIn: '10m' }
+            );
 
             const url = linkedinService.getAuthUrl(state);
 
@@ -61,10 +47,9 @@ export const linkedinController = {
     async callback(req: Request, res: Response): Promise<void> {
         const { code, state, error: oauthError } = req.query;
 
-        // Handle user-denied or LinkedIn errors
         if (oauthError) {
             logger.warn('LinkedIn OAuth error', { error: oauthError });
-            res.redirect('http://localhost:8080/settings?linkedin=error');
+            res.redirect(`http://localhost:8080/settings?linkedin=access_denied&details=${oauthError}`);
             return;
         }
 
@@ -74,17 +59,16 @@ export const linkedinController = {
             return;
         }
 
-        // Validate CSRF state
-        const storedState = oauthStates.get(state as string);
-        if (!storedState || storedState.expiresAt < Date.now()) {
-            oauthStates.delete(state as string);
-            logger.warn('LinkedIn callback invalid or expired state');
+        // Validate CSRF state (which is a JWT containing the userId)
+        let userId: string;
+        try {
+            const decoded = jwt.verify(state as string, env.JWT_SECRET) as { userId: string };
+            userId = decoded.userId;
+        } catch (err) {
+            logger.warn('LinkedIn callback invalid or expired state JWT');
             res.redirect('http://localhost:8080/settings?linkedin=invalid_state');
             return;
         }
-
-        const userId = storedState.userId;
-        oauthStates.delete(state as string); // Single-use
 
         try {
             // 1. Exchange authorization code for tokens
@@ -109,11 +93,22 @@ export const linkedinController = {
 
             res.redirect('http://localhost:8080/settings?linkedin=success');
         } catch (err: any) {
+            const fs = require('fs');
+            try {
+                fs.appendFileSync('C:/Projects/Creator_Pulse/backend/linkedin-error.log', JSON.stringify({
+                    msg: err.message,
+                    stack: err.stack,
+                    response: err.response?.data,
+                    userId
+                }, null, 2) + '\n\n');
+            } catch (e) {}
+
             logger.error('LinkedIn OAuth callback failed', {
                 error: err.message,
                 userId,
             });
-            res.redirect('http://localhost:8080/settings?linkedin=error');
+            const errorDetails = encodeURIComponent(err.response?.data?.error_description || err.response?.data?.message || err.message || 'Unknown server error');
+            res.redirect(`http://localhost:8080/settings?linkedin=error&details=${errorDetails}`);
         }
     },
 

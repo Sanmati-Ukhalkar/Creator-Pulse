@@ -117,7 +117,7 @@ export function TopicScheduleButton({
           Schedule Content
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto custom-scrollbar">
         <DialogHeader>
           <DialogTitle>Schedule Content from "{topicTitle}"</DialogTitle>
         </DialogHeader>

@@ -14,8 +14,11 @@ import {
   Send,
   LogOut,
   GitBranch,
+  Images,
+  Activity,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
+import { EngineMonitor } from '@/components/monitor/EngineMonitor';
 import {
   Sidebar,
   SidebarContent,
@@ -35,7 +38,8 @@ const navigation = [
   { name: 'Drafts', href: '/drafts', icon: FileText },
   { name: 'Delivery', href: '/delivery', icon: Send },
   { name: 'Workflow', href: '/workflow', icon: GitBranch },
-  { name: 'Voice Training', href: '/voice-training', icon: Sparkles },
+  { name: 'Carousel', href: '/carousel', icon: Images },
+
   { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
@@ -48,7 +52,7 @@ export function CreatorSidebar() {
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <Sidebar className={collapsed ? "w-16" : "w-64"} collapsible="icon" onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+    <Sidebar className={collapsed ? "w-16" : "w-64"} collapsible="icon">
       <SidebarContent className="bg-sidebar border-r border-sidebar-border">
         {/* Logo */}
         <div className={collapsed ? "p-2 border-b border-sidebar-border" : "p-6 border-b border-sidebar-border"}>
@@ -95,7 +99,14 @@ export function CreatorSidebar() {
         </SidebarGroup>
 
         {/* Bottom section */}
-        <div className="mt-auto p-4 border-t border-sidebar-border">
+        <div className="mt-auto p-4 border-t border-sidebar-border space-y-4">
+          <EngineMonitor>
+            <button className={`w-full flex items-center ${collapsed ? "justify-center" : "space-x-3 px-3 py-2"} rounded-lg bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 hover:text-indigo-300 transition-colors border border-indigo-500/20`}>
+              <Activity className="w-5 h-5 flex-shrink-0" />
+              {!collapsed && <span className="font-medium text-sm">Engine Monitor</span>}
+            </button>
+          </EngineMonitor>
+          
           {!collapsed && (
             <div className="glass-card p-4">
               <div className="flex items-center space-x-3 mb-3">

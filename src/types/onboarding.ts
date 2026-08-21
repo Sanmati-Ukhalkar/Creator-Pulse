@@ -31,20 +31,12 @@ export interface DeliveryPreferences {
   timezone: string;
 }
 
-export interface VoiceTrainingData {
-  platform: string;
-  samples: ContentSample[];
-  analysisComplete: boolean;
-  confidenceScore?: number;
-}
-
 export interface OnboardingState {
   currentStep: number;
   userData: UserData;
   profileData: ProfileSetupData;
   contentSamples: ContentSample[];
   deliveryPrefs: DeliveryPreferences;
-  voiceTraining: VoiceTrainingData[];
   isLoading: boolean;
   error?: string;
 }
@@ -56,7 +48,6 @@ export interface OnboardingActions {
   addContentSample: (sample: ContentSample) => void;
   removeContentSample: (id: string) => void;
   updateDeliveryPrefs: (prefs: Partial<DeliveryPreferences>) => void;
-  updateVoiceTraining: (data: VoiceTrainingData) => void;
   setLoading: (loading: boolean) => void;
   setError: (error?: string) => void;
   nextStep: () => void;

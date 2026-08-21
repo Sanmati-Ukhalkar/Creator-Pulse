@@ -43,13 +43,10 @@ export default function SignupPage() {
 
     try {
       const response = await api.post('/auth/register', {
+        firstName: data.firstName,
+        lastName: data.lastName,
         email: data.email,
         password: data.password,
-        // Backend register schema only has email/password.
-        // If I want other fields, I need to update backend or store them separately.
-        // For now, I'll ignore firstName/lastName in backend call or update backend.
-        // But let's stick to what backend supports: email, password.
-        // The user can update profile later if needed.
       });
 
       if (response.data.token) {

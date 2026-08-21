@@ -71,7 +71,12 @@ export const trendsController = {
                 return;
             }
 
-            const rawTexts = latestContent.rows.map(row => row.raw_content).filter(text => text && text.length > 50);
+            const rawTexts = latestContent.rows.reduce<string[]>((acc, row) => {
+                if (row.raw_content && row.raw_content.length > 50) {
+                    acc.push(row.raw_content);
+                }
+                return acc;
+            }, []);
 
             if (rawTexts.length === 0) {
                 res.status(400).json({ error: 'Scraped content was too short or empty.' });
@@ -85,10 +90,10 @@ export const trendsController = {
             const savedTopics = [];
             for (const topicData of aiResponse.topics) {
                 const topicInsert = await pool.query(
-                    `INSERT INTO topics (user_id, title, description, keywords, trend_score, confidence_score, created_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                    `INSERT INTO topics (user_id, title, description, keywords, trend_score, confidence_score, is_trending, created_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
                      RETURNING *`,
-                    [userId, topicData.topic, topicData.description, topicData.keywords || [], topicData.score || 0, 80]
+                    [userId, topicData.topic, topicData.description, topicData.keywords || [], topicData.score || 0, topicData.confidence_score || 80, (topicData.score || 0) >= 75]
                 );
                 savedTopics.push(topicInsert.rows[0]);
             }

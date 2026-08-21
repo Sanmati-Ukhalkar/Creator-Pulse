@@ -47,6 +47,7 @@ export function LinkedInConnect() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [backendConfig, setBackendConfig] = useState<{ hasClientId: boolean; hasClientSecret: boolean; hasRedirectUri: boolean } | null>(null);
+  const [oauthError, setOauthError] = useState<{ type: string; details: string } | null>(null);
 
   // Fetch Connection Status
   const { data: status, isLoading, refetch } = useQuery<LinkedInStatus>({
@@ -77,18 +78,22 @@ export function LinkedInConnect() {
   // Handle OAuth Callback Effects
   useEffect(() => {
     const linkedinParam = searchParams.get('linkedin');
+    const detailsParam = searchParams.get('details');
+
     if (linkedinParam === 'success') {
       toast({ title: "✅ LinkedIn Connected", description: "Your LinkedIn account has been successfully linked." });
+      setOauthError(null);
       searchParams.delete('linkedin');
+      searchParams.delete('details');
       setSearchParams(searchParams);
       queryClient.invalidateQueries({ queryKey: ['linkedin-status'] });
-    } else if (linkedinParam === 'error' || linkedinParam === 'invalid_state') {
-      toast({
-        title: "Connection Failed",
-        description: "LinkedIn OAuth failed. Check that your App credentials and redirect URI are correct.",
-        variant: "destructive",
+    } else if (linkedinParam && linkedinParam !== 'success') {
+      setOauthError({ 
+        type: linkedinParam, 
+        details: detailsParam ? decodeURIComponent(detailsParam) : "Unknown error occurred" 
       });
       searchParams.delete('linkedin');
+      searchParams.delete('details');
       setSearchParams(searchParams);
     }
   }, [searchParams, setSearchParams, toast, queryClient]);
@@ -224,6 +229,47 @@ export function LinkedInConnect() {
           )}
         </CardContent>
       </Card>
+
+      {/* ── OAuth Error Banner ── */}
+      {oauthError && !isConnected && (
+        <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-500">
+          <AlertCircle className="h-4 w-4" />
+          <div className="flex flex-col gap-2">
+            <div>
+              <AlertDescription className="font-semibold text-sm">
+                LinkedIn Connection Failed
+              </AlertDescription>
+              <div className="text-xs opacity-90 mt-1 space-y-1">
+                <p><strong>Error Type:</strong> {oauthError.type}</p>
+                <p><strong>Details:</strong> {oauthError.details}</p>
+                
+                {oauthError.type === 'invalid_state' && (
+                  <p className="mt-2 text-yellow-500">💡 Tip: The authentication session expired or was lost. Simply try again.</p>
+                )}
+                {oauthError.details.includes('w_member_social') && (
+                  <p className="mt-2 text-yellow-500">💡 Tip: Your LinkedIn App is missing the "Share on LinkedIn" product. Go to the Developer Portal → Products and add it.</p>
+                )}
+                {oauthError.details.toLowerCase().includes('secret') && (
+                  <p className="mt-2 text-yellow-500">💡 Tip: Your LINKEDIN_CLIENT_SECRET might be incorrect. Double check it in your .env file.</p>
+                )}
+              </div>
+            </div>
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="w-fit mt-1 border-red-500/30 hover:bg-red-500/20"
+              onClick={() => {
+                setOauthError(null);
+                connectMutation.mutate();
+              }}
+              disabled={connectMutation.isPending}
+            >
+              {connectMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-3 w-3 mr-2" />}
+              Try Again
+            </Button>
+          </div>
+        </Alert>
+      )}
 
       {/* ── Setup Checklist ── */}
       <Card>

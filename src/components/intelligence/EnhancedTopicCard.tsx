@@ -110,13 +110,13 @@ export function EnhancedTopicCard({
           <CardTitle className="text-lg leading-tight">{topic.title}</CardTitle>
           {topic.description && (
             <CardDescription
-              className={`${!showFullDescription && topic.description.length > 150 ? "line-clamp-2" : ""}`}
+              className={`${!showFullDescription && topic.description.length > 150 ? "line-clamp-2 break-words" : "whitespace-pre-wrap break-words"}`}
             >
               {topic.description}
               {topic.description.length > 150 && (
                 <button
                   onClick={() => setShowFullDescription(!showFullDescription)}
-                  className="text-primary hover:underline ml-2 text-sm"
+                  className="text-primary hover:underline ml-2 text-sm inline-block"
                 >
                   {showFullDescription ? "Show less" : "Show more"}
                 </button>

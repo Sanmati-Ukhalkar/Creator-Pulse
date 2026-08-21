@@ -26,6 +26,19 @@ router.post(
 );
 
 /**
+ * POST /api/generate/stream
+ *
+ * Stream LinkedIn content from a trend/topic.
+ */
+router.post(
+    '/generate/stream',
+    authMiddleware,
+    aiLimiter,
+    validate(generateContentSchema),
+    generateController.generateStream
+);
+
+/**
  * POST /api/generate/hooks
  *
  * Generate 3-5 distinct hooks for a topic

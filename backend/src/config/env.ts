@@ -10,6 +10,7 @@ const envSchema = z.object({
     // Server
     PORT: z.string().default('4000').transform(Number),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+    REDIS_URL: z.string().url().default('redis://localhost:6379'),
 
     // Authentication (JWT)
     JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
@@ -28,6 +29,12 @@ const envSchema = z.object({
 
     // Twitter (Scraper)
     TWITTER_BEARER_TOKEN: z.string().optional(),
+
+    // Tavily Search API
+    TAVILY_API_KEY: z.string().min(10).optional(),
+    
+    // NewsAPI
+    NEWS_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

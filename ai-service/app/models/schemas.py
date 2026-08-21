@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, Literal
 from enum import Enum
 
 
@@ -20,10 +20,10 @@ class TrendInput(BaseModel):
 class GenerateRequest(BaseModel):
     """Request body for content generation."""
     trend: TrendInput
-    voice_samples: list[str] = Field(default=[], max_length=10)
     hook_text: Optional[str] = None
     content_type: ContentType = ContentType.LINKEDIN_SHORT
     platform: str = "linkedin"
+    use_ensemble: bool = False
 
 
 class AnalyzeTrendsRequest(BaseModel):
@@ -37,6 +37,7 @@ class TopicResult(BaseModel):
     description: str
     keywords: list[str] = []
     score: int
+    confidence_score: int = 80
 
 
 class AnalyzeTrendsResponse(BaseModel):
@@ -50,7 +51,6 @@ class GenerateHooksRequest(BaseModel):
     """Request body for hook generation."""
     trend: TrendInput
     angle: Optional[str] = None
-    voice_samples: list[str] = Field(default=[], max_length=10)
 
 
 class HookResult(BaseModel):
@@ -90,3 +90,33 @@ class HealthResponse(BaseModel):
     status: str
     timestamp: str
     version: str = "1.0.0"
+
+
+class ImageGenerateRequest(BaseModel):
+    """Request body for AI image generation."""
+    post_text: str = Field(..., min_length=10, description="The generated post text to base the image on")
+    topic: str = Field(..., min_length=1, max_length=300, description="The trend topic title")
+    provider: Literal["pollinations", "gemini"] = "pollinations"
+    seed: int = Field(default=42, description="Seed for Pollinations — change to regenerate a different variation")
+
+
+class ImageGenerateResponse(BaseModel):
+    """Response body containing generated image data."""
+    image_b64: str = Field(..., description="Base64-encoded image bytes")
+    format: str = Field(default="jpeg", description="Image format: jpeg or png")
+    width: int = 1216
+    height: int = 832
+    provider: str
+    prompt_used: str = Field(..., description="The exact prompt sent to the image model")
+    processing_time_ms: int = 0
+
+
+class GenerateListeningQueriesRequest(BaseModel):
+    niche: str
+    audience: str
+
+
+class GenerateListeningQueriesResponse(BaseModel):
+    queries: list[str]
+    tokens_consumed: int = 0
+    processing_time_ms: int = 0

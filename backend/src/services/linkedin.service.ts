@@ -216,24 +216,162 @@ export const linkedinService = {
     async createPost(
         accessToken: string,
         authorUrn: string,
-        content: string
+        content: string,
+        image?: { b64: string; format: string },
+        document?: { path: string; name: string }
     ): Promise<{ id: string }> {
         try {
-            const response = await axios.post(
-                LINKEDIN_UGC_URL,
-                {
-                    author: `urn:li:person:${authorUrn}`,
-                    lifecycleState: 'PUBLISHED',
-                    specificContent: {
-                        'com.linkedin.ugc.ShareContent': {
-                            shareCommentary: { text: content },
-                            shareMediaCategory: 'NONE',
+            let mediaAsset: string | null = null;
+            let mediaCategory: 'NONE' | 'IMAGE' | 'DOCUMENT' = 'NONE';
+            let mediaTitle = 'Post Media';
+
+            if (document && document.path) {
+                logger.info('Document provided. Initializing document upload with LinkedIn...', { authorUrn, path: document.path });
+                const fs = require('fs');
+                
+                // 1. Initialize Upload for Document (using rest/documents API)
+                const initializeRes = await axios.post(
+                    'https://api.linkedin.com/rest/documents?action=initializeUpload',
+                    {
+                        initializeUploadRequest: {
+                            owner: `urn:li:person:${authorUrn}`
+                        }
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json',
+                            'X-Restli-Protocol-Version': '2.0.0',
+                            'LinkedIn-Version': '202606'
+                        },
+                    }
+                );
+
+                const uploadUrl = initializeRes.data.value.uploadUrl;
+                mediaAsset = initializeRes.data.value.document;
+
+                // 2. Upload the binary
+                logger.info('Uploading PDF document to LinkedIn...', { mediaAsset });
+                const docBuffer = fs.readFileSync(document.path);
+                await axios.put(uploadUrl, docBuffer, {
+                    headers: {
+                        'Content-Type': 'application/pdf',
+                    },
+                });
+                logger.info('Document binary upload complete.');
+                
+                mediaCategory = 'DOCUMENT';
+                mediaTitle = document.name;
+
+            } else if (image && image.b64) {
+                logger.info('Image provided. Registering upload with LinkedIn...', { authorUrn });
+                // 1. Register Upload
+                const registerRes = await axios.post(
+                    'https://api.linkedin.com/v2/assets?action=registerUpload',
+                    {
+                        registerUploadRequest: {
+                            recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
+                            owner: `urn:li:person:${authorUrn}`,
+                            serviceRelationships: [
+                                {
+                                    relationshipType: 'OWNER',
+                                    identifier: 'urn:li:userGeneratedContent',
+                                },
+                            ],
                         },
                     },
-                    visibility: {
-                        'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+                    {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json',
+                        },
+                    }
+                );
+
+                const uploadUrl = registerRes.data.value.uploadMechanism['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'].uploadUrl;
+                mediaAsset = registerRes.data.value.asset;
+
+                // 2. Upload the binary
+                logger.info('Uploading image binary to LinkedIn...', { mediaAsset });
+                const base64Data = image.b64.replace(/^data:image\/\w+;base64,/, '');
+                const imageBuffer = Buffer.from(base64Data, 'base64');
+                await axios.put(uploadUrl, imageBuffer, {
+                    headers: {
+                        'Content-Type': `image/${image.format === 'png' ? 'png' : 'jpeg'}`,
+                    },
+                });
+                logger.info('Image binary upload complete.');
+                
+                mediaCategory = 'IMAGE';
+                mediaTitle = 'Post Image';
+            }
+
+            if (mediaCategory === 'DOCUMENT') {
+                // Documents MUST use the /rest/posts API
+                const restPostPayload = {
+                    author: `urn:li:person:${authorUrn}`,
+                    commentary: content,
+                    visibility: 'PUBLIC',
+                    distribution: {
+                        feedDistribution: 'MAIN_FEED',
+                        targetEntities: [],
+                        thirdPartyDistributionChannels: []
+                    },
+                    content: {
+                        media: {
+                            id: mediaAsset,
+                            title: mediaTitle
+                        }
+                    },
+                    lifecycleState: 'PUBLISHED',
+                    isReshareDisabledByAuthor: false
+                };
+
+                const response = await axios.post(
+                    'https://api.linkedin.com/rest/posts',
+                    restPostPayload,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${accessToken}`,
+                            'Content-Type': 'application/json',
+                            'X-Restli-Protocol-Version': '2.0.0',
+                            'LinkedIn-Version': '202606'
+                        },
+                    }
+                );
+
+                return { id: response.headers['x-restli-id'] || response.data?.id };
+            }
+
+            // Fallback for IMAGE and text posts using legacy UGC API
+            const postPayload: any = {
+                author: `urn:li:person:${authorUrn}`,
+                lifecycleState: 'PUBLISHED',
+                specificContent: {
+                    'com.linkedin.ugc.ShareContent': {
+                        shareCommentary: { text: content },
+                        shareMediaCategory: mediaCategory,
                     },
                 },
+                visibility: {
+                    'com.linkedin.ugc.MemberNetworkVisibility': 'PUBLIC',
+                },
+            };
+
+            if (mediaAsset) {
+                postPayload.specificContent['com.linkedin.ugc.ShareContent'].media = [
+                    {
+                        status: 'READY',
+                        description: { text: 'Media generated by CreatorPulse' },
+                        media: mediaAsset,
+                        title: { text: mediaTitle },
+                    },
+                ];
+            }
+
+            const response = await axios.post(
+                LINKEDIN_UGC_URL,
+                postPayload,
                 {
                     headers: {
                         Authorization: `Bearer ${accessToken}`,
@@ -255,7 +393,7 @@ export const linkedinService = {
                 throw new Error('LinkedIn token expired. Please reconnect your account.');
             }
 
-            logger.error('LinkedIn API error', { status, message });
+            logger.error('LinkedIn API error', { status, message, data: error.response?.data });
             throw new Error(`LinkedIn post failed: ${message}`);
         }
     },

@@ -9,6 +9,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Wand2,
@@ -18,11 +26,14 @@ import {
   FileEdit,
   Check,
   ChevronRight,
+  LayoutTemplate,
 } from "lucide-react";
-import { useContentGeneration } from "@/hooks/useContentGeneration";
+import { useContentGeneration, streamContentGeneration } from "@/hooks/useContentGeneration";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { PostImagePanel } from "./PostImagePanel";
+import { InlineCarouselGeneratorDialog } from "@/components/carousel/InlineCarouselGeneratorDialog";
 
 interface ContentGenerationFormProps {
   topicId?: string;
@@ -58,6 +69,7 @@ export const ContentGenerationForm = ({
     initialContentType || "text_post",
   );
   const [prompt, setPrompt] = useState("");
+  const [useEnsemble, setUseEnsemble] = useState(false);
 
   // Pipeline State
   const [step, setStep] = useState<"setup" | "hooks" | "result">("setup");
@@ -73,6 +85,13 @@ export const ContentGenerationForm = ({
   // Publishing State
   const [isPublishing, setIsPublishing] = useState(false);
 
+  // Smart Carousel State — now handled by InlineCarouselGeneratorDialog
+  const [showCarouselDialog, setShowCarouselDialog] = useState(false);
+
+  // Generated Image State
+  const [generatedImageB64, setGeneratedImageB64] = useState<string | null>(null);
+  const [generatedImageFormat, setGeneratedImageFormat] = useState<string>("jpeg");
+
   const platforms = [
     { value: "linkedin", label: "LinkedIn" },
     // Only LinkedIn supported in backend MVP for now
@@ -81,10 +100,18 @@ export const ContentGenerationForm = ({
   const contentTypes = [
     { value: "text_post", label: "Short Post" },
     { value: "article", label: "Long Article" },
+    { value: "carousel", label: "LinkedIn Carousel" },
   ];
 
   const handleGenerateHooks = async () => {
     if (!platform || !contentType) return;
+
+    // Carousel generation is a dedicated async pipeline — redirect to the Carousel page
+    if (contentType === 'carousel') {
+      const topic = topicTitle || '';
+      window.location.href = `/carousel?topic=${encodeURIComponent(topic)}`;
+      return;
+    }
 
     try {
       const result = await generateHooksAsync({
@@ -107,26 +134,39 @@ export const ContentGenerationForm = ({
   const handleGenerateFullPost = async () => {
     if (!selectedHookText) return;
 
-    try {
-      const result = await generateContentAsync({
-        topic: topicTitle || "General Topic",
-        description:
-          prompt ||
-          topicDescription ||
-          "Write a professional post about this topic.",
-        platform,
-        contentType,
-        hookText: selectedHookText,
-        keywords: [],
-      });
+    setGeneratedContent("");
+    setStep("result"); // Switch to result view immediately to see stream
+    setIsPublishing(false); // We can reuse isPublishing as a "generating" state for the button or we can use another state
 
-      if (result?.data?.content) {
-        setGeneratedContent(result.data.content);
-        setGeneratedDraftId(result.data.draft_id);
-        setStep("result");
-      }
+    try {
+      await streamContentGeneration(
+        {
+          topic: topicTitle || "General Topic",
+          description:
+            prompt ||
+            topicDescription ||
+            "Write a professional post about this topic.",
+          platform,
+          contentType,
+          hookText: selectedHookText,
+          keywords: [],
+          useEnsemble,
+        },
+        (chunk) => {
+          setGeneratedContent((prev) => (prev || "") + chunk);
+        },
+        (draftId) => {
+          setGeneratedDraftId(draftId);
+          toast.success("Content generation complete!");
+        },
+        (error) => {
+          toast.error("Stream error: " + (error.message || error));
+          setStep("hooks"); // rollback on error
+        }
+      );
     } catch (error) {
-      // Handled in hook
+      toast.error("Failed to start generation");
+      setStep("hooks");
     }
   };
 
@@ -156,6 +196,8 @@ export const ContentGenerationForm = ({
     if (onSuccess) onSuccess();
   };
 
+  // handleGenerateCarousel is now handled inside InlineCarouselGeneratorDialog
+
   // If content is generated, show the RESULT view
   if (step === "result" && generatedContent) {
     return (
@@ -173,16 +215,35 @@ export const ContentGenerationForm = ({
             className="min-h-[300px] font-mono text-sm leading-relaxed"
           />
 
+          {/* ── AI Image Panel ── appears as soon as draft is saved ── */}
+          <PostImagePanel
+            postText={generatedContent || ""}
+            topic={topicTitle || "General Topic"}
+            draftId={generatedDraftId}
+            onImageGenerated={(b64, fmt) => {
+              setGeneratedImageB64(b64);
+              setGeneratedImageFormat(fmt);
+            }}
+          />
+
           <div className="flex gap-3 justify-end">
-            <Button variant="outline" onClick={() => setStep("hooks")}>
+            <Button variant="outline" onClick={() => setStep("hooks")} disabled={!generatedDraftId}>
               Back to Hooks
             </Button>
-            <Button variant="secondary" onClick={handleSaveDraft}>
+            <Button variant="secondary" onClick={handleSaveDraft} disabled={!generatedDraftId}>
               Save Draft
             </Button>
             <Button
+              onClick={() => setShowCarouselDialog(true)}
+              className="bg-creator-violet hover:bg-creator-violet/90 text-white"
+              disabled={!generatedDraftId}
+            >
+              <LayoutTemplate className="mr-2 h-4 w-4" />
+              Turn into Carousel
+            </Button>
+            <Button
               onClick={handlePublish}
-              disabled={isPublishing}
+              disabled={isPublishing || !generatedDraftId}
               className="bg-[#0077b5] hover:bg-[#006097] text-white"
             >
               {isPublishing ? (
@@ -194,6 +255,15 @@ export const ContentGenerationForm = ({
             </Button>
           </div>
         </CardContent>
+
+        {/* Inline Carousel Generator — full cycle in one modal, no page navigation */}
+        <InlineCarouselGeneratorDialog
+          open={showCarouselDialog}
+          onOpenChange={setShowCarouselDialog}
+          sourceText={generatedContent || ""}
+          topic={topicTitle || "LinkedIn Carousel"}
+          sourceDraftId={generatedDraftId}
+        />
       </Card>
     );
   }
@@ -212,8 +282,8 @@ export const ContentGenerationForm = ({
             grabs the most attention.
           </p>
         </CardHeader>
-        <CardContent className="px-0 space-y-4">
-          <div className="grid gap-3">
+        <CardContent className="px-0 space-y-4 flex flex-col h-full">
+          <div className="grid gap-3 max-h-[50vh] overflow-y-auto pr-2">
             {generatedHooks.map((h: any, idx) => (
               <div
                 key={idx}
@@ -235,7 +305,7 @@ export const ContentGenerationForm = ({
             ))}
           </div>
 
-          <div className="flex gap-3 pt-4 justify-end">
+          <div className="flex gap-3 pt-4 justify-end mt-auto border-t">
             <Button variant="ghost" onClick={() => setStep("setup")}>
               Back
             </Button>
@@ -299,6 +369,22 @@ export const ContentGenerationForm = ({
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        <div className="flex flex-row items-center justify-between rounded-lg border p-4">
+          <div className="space-y-0.5">
+            <Label className="text-base font-medium flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-creator-violet" />
+              Use Ensemble Brainstorming
+            </Label>
+            <p className="text-sm text-muted-foreground">
+              Queries multiple open-source AI models simultaneously to gather diverse perspectives before writing.
+            </p>
+          </div>
+          <Switch
+            checked={useEnsemble}
+            onCheckedChange={setUseEnsemble}
+          />
         </div>
 
         <div className="space-y-2">

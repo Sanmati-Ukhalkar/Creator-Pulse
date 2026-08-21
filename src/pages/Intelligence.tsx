@@ -135,7 +135,7 @@ const Intelligence = () => {
           <CardContent>
             <div className="text-2xl font-bold">
               {topics.length > 0
-                ? Math.round((topics.reduce((acc, t) => acc + t.confidence_score, 0) / topics.length) * 100)
+                ? Math.round((topics.reduce((acc, t) => acc + Number(t.confidence_score || 0), 0) / topics.length))
                 : 0}%
             </div>
             <p className="text-xs text-muted-foreground">

@@ -1,16 +1,28 @@
 import { useState, useEffect, useMemo } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { Plus, LayoutGrid, List } from "lucide-react";
+import { Plus, LayoutGrid, List, LayoutTemplate, Wand2, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { DraftCard } from "@/components/drafts/DraftCard";
+import { CarouselDraftCard } from "@/components/drafts/CarouselDraftCard";
 import { DraftFilters } from "@/components/drafts/DraftFilters";
 import { DraftScheduleButton } from "@/components/drafts/DraftScheduleButton";
 import { DraftPublishButton } from "@/components/drafts/DraftPublishButton";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { PostImagePanel } from "@/components/intelligence/PostImagePanel";
+import { InlineCarouselGeneratorDialog } from "@/components/carousel/InlineCarouselGeneratorDialog";
 
 interface Draft {
   id: string;
@@ -34,9 +46,12 @@ interface Draft {
 }
 
 export default function Drafts() {
-  const [drafts, setDrafts] = useState<Draft[]>([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 20;
   const { toast } = useToast();
   const [editingDraft, setEditingDraft] = useState<Draft | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -46,6 +61,9 @@ export default function Drafts() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string>("");
 
+  // Smart Carousel State — now handled by InlineCarouselGeneratorDialog
+  const [showCarouselDialog, setShowCarouselDialog] = useState(false);
+
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState('all');
@@ -53,27 +71,19 @@ export default function Drafts() {
   const [selectedContentType, setSelectedContentType] = useState('all');
   const [dateRange, setDateRange] = useState('all');
 
-  // Fetch drafts from Supabase
-  useEffect(() => {
-    fetchDrafts();
-  }, []);
+  // Fetch drafts from Supabase using React Query
+  const { data, isLoading: loading } = useQuery({
+    queryKey: ['drafts', currentPage, pageSize],
+    queryFn: async () => {
+      const response = await api.get(`/drafts?limit=${pageSize}&offset=${(currentPage - 1) * pageSize}`);
+      return response.data;
+    },
+    staleTime: 30_000,
+  });
 
-  const fetchDrafts = async () => {
-    try {
-      setLoading(true);
-      const response = await api.get('/drafts');
-      setDrafts(response.data || []);
-    } catch (error) {
-      console.error('Error fetching drafts:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch drafts. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const drafts: Draft[] = data?.data || [];
+  const totalDrafts = data?.pagination?.total || 0;
+  const totalPages = Math.ceil(totalDrafts / pageSize);
 
   // Calculate draft counts
   const draftCounts = useMemo(() => {
@@ -91,11 +101,23 @@ export default function Drafts() {
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(draft =>
-        draft.content.text?.toLowerCase().includes(query) ||
-        draft.title?.toLowerCase().includes(query) ||
-        draft.content.hashtags?.some(tag => tag.toLowerCase().includes(query))
-      );
+      filtered = filtered.filter(draft => {
+        // Parse content safely — carousel drafts store JSON string
+        const contentText = (() => {
+          try {
+            const c = typeof draft.content === 'string' ? JSON.parse(draft.content) : draft.content;
+            if (Array.isArray(c?.slides)) {
+              return c.slides.map((s: any) => `${s.title || ''} ${s.body || ''}`).join(' ');
+            }
+            return c?.text || c?.content || '';
+          } catch { return ''; }
+        })();
+        return (
+          contentText.toLowerCase().includes(query) ||
+          draft.title?.toLowerCase().includes(query) ||
+          (draft.content as any)?.hashtags?.some((tag: string) => tag.toLowerCase().includes(query))
+        );
+      });
     }
 
     // Platform filter
@@ -170,7 +192,7 @@ export default function Drafts() {
         content: updatedContent
       });
 
-      setDrafts(prev => prev.map(d => d.id === editingDraft.id ? response.data : d));
+      queryClient.invalidateQueries({ queryKey: ['drafts'] });
       setLastSavedAt(new Date().toLocaleTimeString());
       setEditingDraft(null);
       toast({ title: 'Saved', description: 'Draft updated.' });
@@ -203,7 +225,7 @@ export default function Drafts() {
         });
 
         if (response.data) {
-          setDrafts(prev => prev.map(d => d.id === editingDraft.id ? response.data : d));
+          queryClient.invalidateQueries({ queryKey: ['drafts'] });
           setLastSavedAt(new Date().toLocaleTimeString());
         }
       } catch (e) {
@@ -223,7 +245,7 @@ export default function Drafts() {
     try {
       await api.delete(`/drafts/${id}`);
 
-      setDrafts(prev => prev.filter(d => d.id !== id));
+      queryClient.invalidateQueries({ queryKey: ['drafts'] });
       toast({
         title: "Success",
         description: "Draft deleted successfully.",
@@ -259,7 +281,7 @@ export default function Drafts() {
         status: 'draft'
       });
 
-      setDrafts(prev => [response.data, ...prev]);
+      queryClient.invalidateQueries({ queryKey: ['drafts'] });
       toast({
         title: "Success",
         description: "Draft duplicated successfully.",
@@ -295,7 +317,7 @@ export default function Drafts() {
       }
 
       const sampleContent = {
-        text: "ðŸš€ Excited to share my latest insights on AI and automation in the creator economy. The future of content creation is here, and it's more accessible than ever!\n\nKey takeaways:\nâœ¨ AI tools are empowering creators, not replacing them\nðŸ“ˆ Automation saves time for strategic thinking\nðŸŽ¯ Personalization at scale is now possible\n\nWhat's your experience with AI tools in your creative process? Let's discuss in the comments! ðŸ‘‡",
+        text: "🚀 Excited to share my latest insights on AI and automation in the creator economy. The future of content creation is here, and it's more accessible than ever!\n\nKey takeaways:\n✨ AI tools are empowering creators, not replacing them\n📈 Automation saves time for strategic thinking\n🎯 Personalization at scale is now possible\n\nWhat's your experience with AI tools in your creative process? Let's discuss in the comments! 👇",
         hashtags: ["AI", "CreatorEconomy", "Automation", "ContentCreation", "Innovation"],
         mentions: []
       };
@@ -322,7 +344,7 @@ export default function Drafts() {
 
       const response = await api.post('/drafts', sampleDraft);
 
-      setDrafts(prev => [response.data, ...prev]);
+      queryClient.invalidateQueries({ queryKey: ['drafts'] });
       toast({
         title: "Success",
         description: "Sample draft created successfully!",
@@ -343,13 +365,16 @@ export default function Drafts() {
       // Mark draft as published
       const response = await api.put(`/drafts/${editingDraft.id}`, { status: 'published' });
 
-      setDrafts(prev => prev.map(d => d.id === editingDraft.id ? response.data : d));
+      queryClient.invalidateQueries({ queryKey: ['drafts'] });
       setEditingDraft(null); // Close dialog
       toast({ title: 'Success', description: 'Draft marked as published.' });
     } catch (e) {
       console.error('Failed to update draft status after publish', e);
     }
   };
+
+  // handleGenerateCarousel is now handled inside InlineCarouselGeneratorDialog
+
 
   return (
     <div className="space-y-6">
@@ -447,29 +472,76 @@ export default function Drafts() {
             }`}>
             {filteredDrafts.map((draft) => (
               <div key={draft.id} className="space-y-2">
-                <DraftCard
-                  draft={draft}
-                  onEdit={handleEdit}
-                  onSchedule={handleSchedule}
-                  onDelete={handleDelete}
-                  onDuplicate={handleDuplicate}
-                />
-                <div className="flex justify-end">
-                  <DraftScheduleButton
-                    draftId={draft.id}
-                    draftTitle={draft.title || "Untitled Draft"}
-                    platform={draft.platform}
-                    contentType={draft.content_type}
+                {draft.content_type === 'carousel' ? (
+                  /* Carousel drafts get a dedicated card with built-in actions */
+                  <CarouselDraftCard
+                    draft={draft}
+                    onDelete={() => {
+                      // Card handles the API delete internally — just refresh the list
+                      queryClient.invalidateQueries({ queryKey: ['drafts'] });
+                    }}
                   />
-                </div>
+                ) : (
+                  /* All other draft types use the standard card */
+                  <>
+                    <DraftCard
+                      draft={draft}
+                      onEdit={handleEdit}
+                      onSchedule={handleSchedule}
+                      onDelete={handleDelete}
+                      onDuplicate={handleDuplicate}
+                    />
+                    <div className="flex justify-end">
+                      <DraftScheduleButton
+                        draftId={draft.id}
+                        draftTitle={draft.title || "Untitled Draft"}
+                        draftContent={typeof draft.content === 'string' ? draft.content : (draft.content as any)?.text || (draft.content as any)?.content || draft.title || ''}
+                        platform={draft.platform}
+                        contentType={draft.content_type}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             ))}
+          </div>
+        )}
+        
+        {/* Pagination Controls */}
+        {!loading && totalPages > 1 && (
+          <div className="flex items-center justify-between pt-4 border-t mt-6">
+            <div className="text-sm text-muted-foreground">
+              Showing {(currentPage - 1) * pageSize + 1} to Math.min(currentPage * pageSize, totalDrafts) of {totalDrafts} drafts
+            </div>
+            <div className="flex space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Previous
+              </Button>
+              <div className="flex items-center px-2 text-sm">
+                Page {currentPage} of {totalPages}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <ChevronRight className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
           </div>
         )}
       </div>
       {/* Edit Draft Dialog */}
       <Dialog open={!!editingDraft} onOpenChange={(open) => !open && setEditingDraft(null)}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Draft</DialogTitle>
           </DialogHeader>
@@ -536,13 +608,33 @@ export default function Drafts() {
               </div>
             )}
 
-            <div className="flex justify-between items-center pt-4">
-              <div className="text-[10px] text-muted-foreground">
-                {isSaving ? 'Savingâ€¦' : lastSavedAt ? `Autosaved at ${lastSavedAt}` : ''}
+            {/* ── AI Image Panel for existing drafts ── */}
+            {editingDraft && (
+              <PostImagePanel
+                postText={editText}
+                topic={editTitle || "Untitled Draft"}
+                draftId={editingDraft.id}
+                onImageGenerated={() => {
+                  // Refresh drafts list so the card thumbnail updates
+                  queryClient.invalidateQueries({ queryKey: ['drafts'] });
+                }}
+              />
+            )}
+
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center pt-4 gap-4 sm:gap-2">
+              <div className="text-[10px] sm:text-xs text-muted-foreground whitespace-nowrap">
+                {isSaving ? 'Saving...' : lastSavedAt ? `Autosaved at ${lastSavedAt}` : ''}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2 w-full sm:w-auto sm:justify-end">
                 <Button variant="outline" onClick={() => setEditingDraft(null)}>Cancel</Button>
                 <Button onClick={saveEdit} disabled={!!(editingDraft && editingDraft.platform === 'twitter' && editText.length > 280)}>Save</Button>
+                <Button
+                  onClick={() => setShowCarouselDialog(true)}
+                  className="bg-creator-violet hover:bg-creator-violet/90 text-white"
+                >
+                  <LayoutTemplate className="mr-2 h-4 w-4" />
+                  Turn into Carousel
+                </Button>
                 {editingDraft && editingDraft.platform === 'linkedin' && (
                   <DraftPublishButton
                     content={editText}
@@ -556,6 +648,15 @@ export default function Drafts() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Inline Carousel Generator — full cycle in one modal, no navigation away */}
+      <InlineCarouselGeneratorDialog
+        open={showCarouselDialog}
+        onOpenChange={setShowCarouselDialog}
+        sourceText={editText}
+        topic={editTitle || editingDraft?.title || "LinkedIn Carousel"}
+        sourceDraftId={editingDraft?.id}
+      />
     </div>
   );
 }

@@ -14,6 +14,8 @@ export function ProfileSettings() {
   const { user } = useAuth();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [bio, setBio] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -22,7 +24,9 @@ export function ProfileSettings() {
         const response = await api.get('/profile');
         if (response.data) {
           setFullName(response.data.full_name || "");
-          setEmail(response.data.email || "");
+          setEmail(response.data.email || user?.email || "");
+          setUsername(response.data.creator_handle || "");
+          setBio(response.data.bio || "");
         }
       } catch (err) {
         console.error('Failed to load profile', err);
@@ -33,9 +37,21 @@ export function ProfileSettings() {
 
   const saveProfile = async () => {
     if (!user?.id) return;
+
+    // Validate email format before calling API
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Please enter a valid email address.');
+      return;
+    }
+
     try {
       setIsSaving(true);
-      await api.put('/profile', { full_name: fullName || null, email: email || null });
+      await api.put('/profile', { 
+        full_name: fullName || null, 
+        email: email || null,
+        creator_handle: username || null,
+        bio: bio || null
+      });
       toast.success('Profile updated');
     } catch (e: any) {
       toast.error(`Failed to update profile: ${e.response?.data?.error || e.message || 'Unknown error'}`);
@@ -103,6 +119,7 @@ export function ProfileSettings() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Your full name"
+                autoComplete="name"
               />
             </div>
             <div className="space-y-2">
@@ -113,6 +130,25 @@ export function ProfileSettings() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
+                autoComplete="email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="username">Username / Handle</Label>
+              <Input
+                id="username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="@username"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="bio">Bio</Label>
+              <Input
+                id="bio"
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                placeholder="A short bio about you"
               />
             </div>
           </div>

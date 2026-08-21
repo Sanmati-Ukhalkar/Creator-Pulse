@@ -48,6 +48,7 @@ export const analyticsWorker = {
             // Loop through each (sequentially to respect rate limits)
             for (const draft of recentDrafts.rows) {
                 try {
+                    // react-doctor-disable-next-line async-await-in-loop -- False positive: sequential execution required for rate limiting
                     const accessToken = await linkedinService.getValidToken(draft.user_id);
                     
                     const metrics = await linkedinService.getPostMetrics(accessToken, draft.upstream_id);

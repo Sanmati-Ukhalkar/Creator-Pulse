@@ -15,7 +15,7 @@ export const useIngestedContent = (userId?: string) => {
   })
 }
 
-export const useIngestedContentById = (contentId: string) => {
+const useIngestedContentById = (contentId: string) => {
   return useQuery({
     queryKey: ['ingested-content', contentId],
     queryFn: async () => {

@@ -35,6 +35,10 @@ const LoginPage: React.FC = () => {
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     mode: 'onChange',
+    defaultValues: {
+      email: '',
+      password: '',
+    },
   });
 
   const onSubmit = async (data: LoginFormData) => {

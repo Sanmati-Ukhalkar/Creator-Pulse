@@ -9,6 +9,7 @@ const NotFound = () => {
       "404 Error: User attempted to access non-existent route:",
       location.pathname
     );
+    // react-doctor-disable-next-line no-mutable-in-deps -- False positive: location is from useLocation()
   }, [location.pathname]);
 
   return (

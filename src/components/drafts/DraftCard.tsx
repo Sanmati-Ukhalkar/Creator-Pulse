@@ -25,6 +25,10 @@ interface Draft {
       shares?: number;
     };
     ai_suggestions?: string[];
+    image_b64?: string;
+    image_format?: string;
+    image_provider?: string;
+    image_prompt?: string;
   };
   metrics?: {
     likes?: number;
@@ -109,9 +113,20 @@ export function DraftCard({ draft, onEdit, onSchedule, onDelete, onDuplicate }: 
     return text.substring(0, maxLength) + '...';
   };
 
-  const contentText = typeof (draft.content as any)?.text === 'string'
-    ? (draft.content as any).text
-    : (typeof (draft.content as any) === 'string' ? String(draft.content) : '');
+  let parsedContent = draft.content;
+  if (typeof draft.content === 'string') {
+    try {
+      parsedContent = JSON.parse(draft.content);
+    } catch (e) {
+      // Keep as string if parsing fails
+    }
+  }
+
+  const contentText = typeof (parsedContent as any)?.text === 'string'
+    ? (parsedContent as any).text
+    : (typeof (parsedContent as any)?.content === 'string'
+        ? (parsedContent as any).content
+        : (typeof parsedContent === 'string' ? String(parsedContent) : ''));
   const displayText = isExpanded ? contentText : truncateText(contentText);
 
   return (
@@ -170,6 +185,20 @@ export function DraftCard({ draft, onEdit, onSchedule, onDelete, onDuplicate }: 
       </CardHeader>
 
       <CardContent className="pt-0">
+        {/* ── Image Thumbnail (if generated) ── */}
+        {draft.metadata?.image_b64 && (
+          <div className="relative rounded-lg overflow-hidden bg-muted aspect-[1.91/1] w-full mb-3">
+            <img
+              src={`data:image/${draft.metadata.image_format || 'jpeg'};base64,${draft.metadata.image_b64}`}
+              alt="AI banner"
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute top-1.5 right-1.5 bg-black/50 text-white text-[9px] px-1.5 py-0.5 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity">
+              {draft.metadata.image_provider === 'gemini' ? '✨ Gemini' : '⚡ Flux'}
+            </div>
+          </div>
+        )}
+
         {/* Content preview */}
         <div className="space-y-3">
           {contentText && (

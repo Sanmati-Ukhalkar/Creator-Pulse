@@ -47,14 +47,15 @@ export const useContentScraper = () => {
       const { data: sources } = await api.get('/sources');
       const twitterSources = sources.filter((s: any) => s.source_type === 'twitter');
 
-      const results: any[] = []
-      for (const s of (twitterSources || [])) {
-        const response = await api.post('/scraper/run', {
-          source_id: s.id,
-          user_id: userId
-        });
-        results.push(response.data)
-      }
+      const results = await Promise.all(
+        (twitterSources || []).map(async (s: any) => {
+          const response = await api.post('/scraper/run', {
+            source_id: s.id,
+            user_id: userId
+          });
+          return response.data;
+        })
+      );
       return results
     },
     onSuccess: () => {
