@@ -17,26 +17,39 @@ CREATE TYPE sync_status_enum AS ENUM ('pending', 'syncing', 'completed', 'failed
 -- Content status validation
 CREATE TYPE content_status_enum AS ENUM ('fetched', 'processed', 'analyzed', 'archived');
 
+-- Drop old CHECK constraints that conflict with ENUMs
+ALTER TABLE sources DROP CONSTRAINT IF EXISTS sources_source_type_check;
+ALTER TABLE sources DROP CONSTRAINT IF EXISTS sources_sync_status_check;
+ALTER TABLE drafts DROP CONSTRAINT IF EXISTS drafts_status_check;
+
 -- Step 2: Apply ENUM constraints to existing tables
 ALTER TABLE sources 
   ALTER COLUMN source_type TYPE source_type_enum 
   USING source_type::source_type_enum;
 
+ALTER TABLE sources ALTER COLUMN sync_status DROP DEFAULT;
 ALTER TABLE sources 
   ALTER COLUMN sync_status TYPE sync_status_enum 
   USING sync_status::sync_status_enum;
+ALTER TABLE sources ALTER COLUMN sync_status SET DEFAULT 'pending'::sync_status_enum;
 
+ALTER TABLE drafts ALTER COLUMN status DROP DEFAULT;
 ALTER TABLE drafts 
   ALTER COLUMN status TYPE draft_status_enum 
   USING status::draft_status_enum;
+ALTER TABLE drafts ALTER COLUMN status SET DEFAULT 'draft'::draft_status_enum;
 
+ALTER TABLE delivery_preferences ALTER COLUMN frequency DROP DEFAULT;
 ALTER TABLE delivery_preferences 
   ALTER COLUMN frequency TYPE frequency_enum 
   USING frequency::frequency_enum;
+ALTER TABLE delivery_preferences ALTER COLUMN frequency SET DEFAULT 'daily'::frequency_enum;
 
+ALTER TABLE ingested_contents ALTER COLUMN status DROP DEFAULT;
 ALTER TABLE ingested_contents 
   ALTER COLUMN status TYPE content_status_enum 
   USING status::content_status_enum;
+ALTER TABLE ingested_contents ALTER COLUMN status SET DEFAULT 'fetched'::content_status_enum;
 
 -- Step 3: Add Foreign Key Constraints with RESTRICT behavior for safer deletion
 -- Sources must belong to valid users

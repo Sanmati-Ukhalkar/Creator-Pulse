@@ -37,13 +37,13 @@ export const IngestedContentList = () => {
                 <CardTitle className="text-lg line-clamp-2">
                   {item.title || 'Untitled'}
                 </CardTitle>
-                <CardDescription className="flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-2 text-sm text-muted-foreground">
                   <Badge variant="outline" className="text-xs">
                     {item.sources?.source_type || 'Unknown'}
                   </Badge>
                   <span>•</span>
                   <span>{item.sources?.source_name || 'Unknown Source'}</span>
-                </CardDescription>
+                </div>
               </div>
               {item.url && (
                 <a 

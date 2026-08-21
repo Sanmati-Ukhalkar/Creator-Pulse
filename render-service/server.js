@@ -3,9 +3,44 @@ const puppeteer = require('puppeteer');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const dotenv = require('dotenv');
 
 dotenv.config();
+
+/**
+ * Resolve Chrome executable path from the Puppeteer user cache.
+ * puppeteer v22+ uses ~/.cache/puppeteer/chrome/
+ * Falls back to letting puppeteer auto-detect.
+ */
+function findChromeExecPath() {
+    // Check if puppeteer can resolve it itself first
+    try {
+        const execPath = puppeteer.executablePath();
+        if (execPath && fs.existsSync(execPath)) return execPath;
+    } catch (_) {}
+
+    // Manual fallback: scan the user puppeteer cache
+    const cacheDir = path.join(os.homedir(), '.cache', 'puppeteer', 'chrome');
+    if (!fs.existsSync(cacheDir)) return null;
+    const versions = fs.readdirSync(cacheDir).sort().reverse(); // newest first
+    for (const ver of versions) {
+        const candidate = path.join(cacheDir, ver, 'chrome-win64', 'chrome.exe');
+        if (fs.existsSync(candidate)) return candidate;
+        const candidateMac = path.join(cacheDir, ver, 'chrome-mac-arm64', 'Google Chrome for Testing.app', 'Contents', 'MacOS', 'Google Chrome for Testing');
+        if (fs.existsSync(candidateMac)) return candidateMac;
+        const candidateLinux = path.join(cacheDir, ver, 'chrome-linux64', 'chrome');
+        if (fs.existsSync(candidateLinux)) return candidateLinux;
+    }
+    return null;
+}
+
+const CHROME_EXEC = findChromeExecPath();
+if (CHROME_EXEC) {
+    console.log(`Using Chrome at: ${CHROME_EXEC}`);
+} else {
+    console.warn('Chrome executable not found! Puppeteer will attempt auto-detect.');
+}
 
 const app = express();
 app.use(cors());
@@ -46,21 +81,25 @@ app.post('/render', async (req, res) => {
         
         const htmlTemplate = fs.readFileSync(templatePath, 'utf8');
 
-        browser = await puppeteer.launch({
+        const launchOptions = {
             headless: 'new',
             args: LAUNCH_ARGS
-        });
+        };
+        if (CHROME_EXEC) launchOptions.executablePath = CHROME_EXEC;
+        browser = await puppeteer.launch(launchOptions);
         
         const page = await browser.newPage();
         
         // Strict Network request interception (SSRF protection)
         await page.setRequestInterception(true);
         page.on('request', (request) => {
-            // Block all external network requests, templates must be self-contained
-            if (!request.url().startsWith('data:')) {
-                request.abort();
-            } else {
+            const url = request.url();
+            // Allow local resources: data URIs, about:, blank pages used by puppeteer
+            if (url.startsWith('data:') || url.startsWith('about:') || url.startsWith('file:')) {
                 request.continue();
+            } else {
+                // Block all external network requests — templates must be self-contained
+                request.abort();
             }
         });
 

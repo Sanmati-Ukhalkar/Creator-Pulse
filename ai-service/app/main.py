@@ -5,6 +5,11 @@ from app.routes.generate import router as generate_router
 from app.config import get_settings
 from app.services.db import close_db_pool
 import logging
+import sys
+import asyncio
+
+if sys.platform == 'win32':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # Image generation — isolated router (no langchain dependency)
 try:

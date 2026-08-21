@@ -20,6 +20,7 @@ import { format, addDays, isSameDay } from "date-fns";
 import { WeeklyScheduleGrid } from "./WeeklyScheduleGrid";
 import { useDeliveryScheduler, type DeliveryPlatform, type DeliveryContentType } from "@/hooks/useDeliveryScheduler";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface ScheduledDelivery {
   id: string;
@@ -105,9 +106,19 @@ export function DeliveryScheduler() {
       return;
     }
 
+    if (selectedPlatforms.length === 0) {
+      toast.error('Please select at least one platform before scheduling.');
+      return;
+    }
+
     const scheduledDateTime = new Date(selectedDate);
     const [hours, minutes] = selectedTime.split(':');
     scheduledDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
+
+    if (scheduledDateTime <= new Date()) {
+      toast.error('Please select a future date and time.');
+      return;
+    }
 
     selectedPlatforms.forEach(platform => {
       scheduleDelivery({
@@ -149,8 +160,9 @@ export function DeliveryScheduler() {
             {/* Date & Time Selection */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Date</Label>
+                <Label htmlFor="delivery-date">Date</Label>
                 <Calendar
+                  id="delivery-date"
                   mode="single"
                   selected={selectedDate}
                   onSelect={(date) => date && setSelectedDate(date)}
@@ -159,9 +171,9 @@ export function DeliveryScheduler() {
               </div>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label>Time</Label>
+                  <Label htmlFor="delivery-time">Time</Label>
                   <Select value={selectedTime} onValueChange={setSelectedTime}>
-                    <SelectTrigger>
+                    <SelectTrigger id="delivery-time">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -225,9 +237,9 @@ export function DeliveryScheduler() {
 
             {/* Content Type */}
             <div className="space-y-2">
-              <Label>Content Type</Label>
+              <Label htmlFor="content-type">Content Type</Label>
               <Select value={contentType} onValueChange={(value: DeliveryContentType) => setContentType(value)}>
-                <SelectTrigger>
+                <SelectTrigger id="content-type">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -243,19 +255,20 @@ export function DeliveryScheduler() {
             {/* Auto-Generate Toggle */}
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label>Auto-Generate Content</Label>
+                <Label htmlFor="auto-generate">Auto-Generate Content</Label>
                 <p className="text-sm text-muted-foreground">
                   Automatically create content using AI
                 </p>
               </div>
-              <Switch checked={autoGenerate} onCheckedChange={setAutoGenerate} />
+              <Switch id="auto-generate" checked={autoGenerate} onCheckedChange={setAutoGenerate} />
             </div>
 
             {/* Custom Prompt */}
             {autoGenerate && (
               <div className="space-y-2">
-                <Label>Custom Prompt (Optional)</Label>
+                <Label htmlFor="custom-prompt">Custom Prompt (Optional)</Label>
                 <Textarea
+                  id="custom-prompt"
                   placeholder="Provide specific instructions for content generation..."
                   value={customPrompt}
                   onChange={(e) => setCustomPrompt(e.target.value)}
@@ -269,12 +282,12 @@ export function DeliveryScheduler() {
             {/* Recurring Schedule Toggle */}
             <div className="flex items-center justify-between">
               <div className="space-y-1">
-                <Label>Recurring Schedule</Label>
+                <Label htmlFor="recurring-schedule">Recurring Schedule</Label>
                 <p className="text-sm text-muted-foreground">
                   Set up weekly recurring deliveries
                 </p>
               </div>
-              <Switch checked={recurringSchedule} onCheckedChange={setRecurringSchedule} />
+              <Switch id="recurring-schedule" checked={recurringSchedule} onCheckedChange={setRecurringSchedule} />
             </div>
 
             {/* Schedule Delivery Button */}

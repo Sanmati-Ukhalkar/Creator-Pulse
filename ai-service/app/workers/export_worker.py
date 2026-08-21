@@ -11,8 +11,8 @@ from app.services.db import get_db_pool
 
 logger = logging.getLogger(__name__)
 
-# In docker-compose, render-service runs on host 'render-service'
-RENDER_API_URL = os.getenv("RENDER_API_URL", "http://render-service:5000/render")
+# In docker-compose, render-service runs on host 'render-service'; locally use localhost
+RENDER_API_URL = os.getenv("RENDER_API_URL", "http://localhost:5000/render")
 STORAGE_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "storage"))
 PNG_DIR = os.path.join(STORAGE_ROOT, "png_slides")
 EXPORT_DIR = os.path.join(STORAGE_ROOT, "carousel_exports")
@@ -92,10 +92,11 @@ async def process_export_job(job: Job, token: str):
             # Integrate to Drafts (Fake placeholder for MVP mapping)
             job_info = await conn.fetchrow("SELECT user_id, topic FROM carousel_jobs WHERE id = $1", job_id)
             try:
+                draft_content = json.dumps({"text": f"[Carousel Draft] {job_info['topic']}"})
                 await conn.execute("""
                     INSERT INTO drafts (user_id, status, content, platform)
-                    VALUES ($1, 'draft', $2, 'linkedin')
-                """, job_info['user_id'], f"[Carousel Draft] {job_info['topic']}")
+                    VALUES ($1, 'draft', $2::jsonb, 'linkedin')
+                """, job_info['user_id'], draft_content)
             except Exception as ex:
                 logger.warning(f"Drafts table strict mapping mismatch, skipping fake draft push: {ex}")
                 

@@ -27,6 +27,7 @@ import { schedulerService } from './services/scheduler.service';
 import { analyticsWorker } from './services/analytics.worker';
 import { initCleanupCron } from './services/cleanup.cron';
 import { startPulseWorker } from './workers/pulse.worker';
+import { startCarouselWorker } from './workers/carousel.worker';
 
 const app = express();
 
@@ -111,6 +112,10 @@ const server = app.listen(env.PORT, () => {
 
     // Initialize Live Data Pulse Worker
     startPulseWorker();
+
+    // Initialize BullMQ Carousel Worker
+    startCarouselWorker();
+    logger.info('🎠 Carousel Worker started');
 
     logger.info(`🔧 Environment: ${env.NODE_ENV}`);
 });

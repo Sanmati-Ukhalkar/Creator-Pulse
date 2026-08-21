@@ -32,6 +32,14 @@ export function ContentPreferences() {
         if (response.data) {
           setNiche(response.data.niche || "");
           setTargetAudience(response.data.target_audience || "");
+          
+          if (response.data.settings) {
+             if (response.data.settings.tone) setTone(response.data.settings.tone);
+             if (response.data.settings.length) setLength(response.data.settings.length);
+             if (response.data.settings.keywords) setKeywords(response.data.settings.keywords);
+             if (response.data.settings.filterAdult !== undefined) setFilterAdult(response.data.settings.filterAdult);
+             if (response.data.settings.filterSpam !== undefined) setFilterSpam(response.data.settings.filterSpam);
+          }
         }
       } catch (err) {
         console.error('Failed to load profile', err);
@@ -43,10 +51,25 @@ export function ContentPreferences() {
   const savePreferences = async () => {
     setIsSaving(true);
     try {
+      // 1. Update niche which triggers live data engine
       await api.put('/profile/niche', {
         niche: niche,
         target_audience: targetAudience
       });
+      
+      // 2. Update general content preferences
+      const currentProfileResponse = await api.get('/profile');
+      await api.put('/profile', {
+        ...currentProfileResponse.data,
+        settings: {
+          tone,
+          length,
+          keywords,
+          filterAdult,
+          filterSpam
+        }
+      });
+      
       toast.success("Preferences saved! Live data engine is generating queries.");
     } catch (e) {
       toast.error("Failed to save preferences");

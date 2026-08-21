@@ -201,7 +201,7 @@ export default function Workflow() {
       setStep("ai_analysis", { status: "running", detail: "AI analysing trends…" });
       try {
         const trendsRes = await api.post('/trends/trigger', {});
-        const topicsCount = trendsRes.data?.topics_created ?? trendsRes.data?.count ?? "?";
+        const topicsCount = trendsRes.data?.topics?.length ?? trendsRes.data?.topics_created ?? trendsRes.data?.count ?? "?";
         setStep("ai_analysis", { status: "done", detail: `${topicsCount} topic(s) created` });
       } catch (e: any) {
         const msg = e?.response?.data?.error || e?.message || "Analysis failed";

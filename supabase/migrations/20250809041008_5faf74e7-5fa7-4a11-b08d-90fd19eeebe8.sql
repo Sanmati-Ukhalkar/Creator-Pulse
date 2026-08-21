@@ -62,7 +62,7 @@ ALTER TABLE public.ingested_contents ENABLE ROW LEVEL SECURITY;
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE polrelid = 'public.ingested_contents'::regclass AND polname = 'Users can view their ingested contents'
+    SELECT 1 FROM pg_policy WHERE polrelid = 'public.ingested_contents'::regclass AND polname = 'Users can view their ingested contents'
   ) THEN
     CREATE POLICY "Users can view their ingested contents"
       ON public.ingested_contents
@@ -71,7 +71,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE polrelid = 'public.ingested_contents'::regclass AND polname = 'Users can insert their ingested contents'
+    SELECT 1 FROM pg_policy WHERE polrelid = 'public.ingested_contents'::regclass AND polname = 'Users can insert their ingested contents'
   ) THEN
     CREATE POLICY "Users can insert their ingested contents"
       ON public.ingested_contents
@@ -84,7 +84,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE polrelid = 'public.ingested_contents'::regclass AND polname = 'Users can update their ingested contents'
+    SELECT 1 FROM pg_policy WHERE polrelid = 'public.ingested_contents'::regclass AND polname = 'Users can update their ingested contents'
   ) THEN
     CREATE POLICY "Users can update their ingested contents"
       ON public.ingested_contents
@@ -93,7 +93,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE polrelid = 'public.ingested_contents'::regclass AND polname = 'Users can delete their ingested contents'
+    SELECT 1 FROM pg_policy WHERE polrelid = 'public.ingested_contents'::regclass AND polname = 'Users can delete their ingested contents'
   ) THEN
     CREATE POLICY "Users can delete their ingested contents"
       ON public.ingested_contents
@@ -140,7 +140,7 @@ ALTER TABLE public.topics ENABLE ROW LEVEL SECURITY;
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE polrelid = 'public.topics'::regclass AND polname = 'Users can view their topics'
+    SELECT 1 FROM pg_policy WHERE polrelid = 'public.topics'::regclass AND polname = 'Users can view their topics'
   ) THEN
     CREATE POLICY "Users can view their topics"
       ON public.topics
@@ -149,7 +149,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE polrelid = 'public.topics'::regclass AND polname = 'Users can insert their topics'
+    SELECT 1 FROM pg_policy WHERE polrelid = 'public.topics'::regclass AND polname = 'Users can insert their topics'
   ) THEN
     CREATE POLICY "Users can insert their topics"
       ON public.topics
@@ -162,7 +162,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE polrelid = 'public.topics'::regclass AND polname = 'Users can update their topics'
+    SELECT 1 FROM pg_policy WHERE polrelid = 'public.topics'::regclass AND polname = 'Users can update their topics'
   ) THEN
     CREATE POLICY "Users can update their topics"
       ON public.topics
@@ -171,7 +171,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE polrelid = 'public.topics'::regclass AND polname = 'Users can delete their topics'
+    SELECT 1 FROM pg_policy WHERE polrelid = 'public.topics'::regclass AND polname = 'Users can delete their topics'
   ) THEN
     CREATE POLICY "Users can delete their topics"
       ON public.topics
@@ -219,7 +219,7 @@ ALTER TABLE public.topic_research ENABLE ROW LEVEL SECURITY;
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE polrelid = 'public.topic_research'::regclass AND polname = 'Users can view their topic research'
+    SELECT 1 FROM pg_policy WHERE polrelid = 'public.topic_research'::regclass AND polname = 'Users can view their topic research'
   ) THEN
     CREATE POLICY "Users can view their topic research"
       ON public.topic_research
@@ -228,7 +228,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE polrelid = 'public.topic_research'::regclass AND polname = 'Users can insert their topic research'
+    SELECT 1 FROM pg_policy WHERE polrelid = 'public.topic_research'::regclass AND polname = 'Users can insert their topic research'
   ) THEN
     CREATE POLICY "Users can insert their topic research"
       ON public.topic_research
@@ -241,7 +241,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE polrelid = 'public.topic_research'::regclass AND polname = 'Users can update their topic research'
+    SELECT 1 FROM pg_policy WHERE polrelid = 'public.topic_research'::regclass AND polname = 'Users can update their topic research'
   ) THEN
     CREATE POLICY "Users can update their topic research"
       ON public.topic_research
@@ -250,7 +250,7 @@ BEGIN
   END IF;
 
   IF NOT EXISTS (
-    SELECT 1 FROM pg_policies WHERE polrelid = 'public.topic_research'::regclass AND polname = 'Users can delete their topic research'
+    SELECT 1 FROM pg_policy WHERE polrelid = 'public.topic_research'::regclass AND polname = 'Users can delete their topic research'
   ) THEN
     CREATE POLICY "Users can delete their topic research"
       ON public.topic_research

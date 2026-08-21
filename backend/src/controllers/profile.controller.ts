@@ -38,12 +38,12 @@ export const profileController = {
     async updateProfile(req: Request, res: Response) {
         try {
             const userId = req.user!.id;
-            const { full_name, email, creator_handle, bio, industry, creator_type, platforms, timezone } = req.body;
+            const { full_name, email, creator_handle, bio, industry, creator_type, platforms, timezone, settings } = req.body;
 
             // Upsert profile
             const result = await pool.query(
-                `INSERT INTO creator_profiles (user_id, full_name, email, creator_handle, bio, industry, creator_type, platforms, timezone, updated_at)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+                `INSERT INTO creator_profiles (user_id, full_name, email, creator_handle, bio, industry, creator_type, platforms, timezone, settings, updated_at)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
                  ON CONFLICT (user_id) DO UPDATE SET
                     full_name = COALESCE(EXCLUDED.full_name, creator_profiles.full_name),
                     email = COALESCE(EXCLUDED.email, creator_profiles.email),
@@ -53,6 +53,7 @@ export const profileController = {
                     creator_type = COALESCE(EXCLUDED.creator_type, creator_profiles.creator_type),
                     platforms = COALESCE(EXCLUDED.platforms, creator_profiles.platforms),
                     timezone = COALESCE(EXCLUDED.timezone, creator_profiles.timezone),
+                    settings = COALESCE(EXCLUDED.settings, creator_profiles.settings),
                     updated_at = NOW()
                  RETURNING *`,
                 [
@@ -64,7 +65,8 @@ export const profileController = {
                     industry !== undefined ? industry : null, 
                     creator_type !== undefined ? creator_type : null, 
                     platforms !== undefined ? platforms : null, 
-                    timezone !== undefined ? timezone : null
+                    timezone !== undefined ? timezone : null,
+                    settings !== undefined ? settings : null
                 ]
             );
 

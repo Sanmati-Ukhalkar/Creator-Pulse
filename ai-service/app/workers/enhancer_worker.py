@@ -20,8 +20,8 @@ async def process_enhancer_job(job: Job, token: str):
     slide_id = job.data['slideId']
     idea = job.data['idea']
     slide_type = job.data['type']
-    
-    llm = ChatOpenAI(model="gpt-4o-mini", temperature=0.3, model_kwargs={"response_format": {"type": "json_object"}})
+    settings = get_settings()
+    llm = ChatOpenAI(model="gpt-4o-mini", api_key=settings.OPENAI_API_KEY, temperature=0.3, model_kwargs={"response_format": {"type": "json_object"}})
     
     prompt = load_prompt()
     res = await llm.ainvoke([

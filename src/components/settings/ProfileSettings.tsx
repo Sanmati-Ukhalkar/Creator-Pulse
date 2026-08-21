@@ -37,6 +37,13 @@ export function ProfileSettings() {
 
   const saveProfile = async () => {
     if (!user?.id) return;
+
+    // Validate email format before calling API
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Please enter a valid email address.');
+      return;
+    }
+
     try {
       setIsSaving(true);
       await api.put('/profile', { 
@@ -112,6 +119,7 @@ export function ProfileSettings() {
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Your full name"
+                autoComplete="name"
               />
             </div>
             <div className="space-y-2">
@@ -122,6 +130,7 @@ export function ProfileSettings() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="your@email.com"
+                autoComplete="email"
               />
             </div>
             <div className="space-y-2">

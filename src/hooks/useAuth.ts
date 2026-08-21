@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 
 export interface User {
@@ -7,50 +8,49 @@ export interface User {
 }
 
 export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    const checkAuth = async () => {
+  const { data: user, isLoading: loading } = useQuery({
+    queryKey: ['auth-user'],
+    queryFn: async (): Promise<User | null> => {
       const token = localStorage.getItem('auth_token');
       if (!token) {
-        setLoading(false);
-        return;
+        return null;
       }
 
       try {
         const { data } = await api.get('/auth/me');
-        setUser(data.user);
+        return data.user;
       } catch (error) {
         console.error('Failed to validate session', error);
         localStorage.removeItem('auth_token');
-        setUser(null);
-      } finally {
-        setLoading(false);
+        return null;
       }
-    };
+    },
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    retry: false,
+  });
 
-    checkAuth();
-
-    // Listen to storage events to support multi-tab logout (optional but nice)
+  useEffect(() => {
+    // Listen to storage events to support multi-tab logout
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'auth_token' && !e.newValue) {
-        setUser(null);
+        queryClient.setQueryData(['auth-user'], null);
       }
     };
     window.addEventListener('storage', handleStorageChange);
 
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [queryClient]);
 
   const signOut = () => {
     localStorage.removeItem('auth_token');
-    setUser(null);
+    queryClient.setQueryData(['auth-user'], null);
     window.location.href = '/login'; // Or use navigate if accessible
   };
 
   return {
-    user,
+    user: user ?? null,
     loading,
     signOut,
   };

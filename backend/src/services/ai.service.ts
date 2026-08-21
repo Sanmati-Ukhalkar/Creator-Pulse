@@ -23,6 +23,7 @@ export interface TopicResult {
     description: string;
     keywords: string[];
     score: number;
+    confidence_score?: number;
 }
 
 export interface AnalyzeTrendsResponse {

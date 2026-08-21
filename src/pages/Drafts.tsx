@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Plus, LayoutGrid, List, LayoutTemplate, Wand2, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { DraftCard } from "@/components/drafts/DraftCard";
+import { CarouselDraftCard } from "@/components/drafts/CarouselDraftCard";
 import { DraftFilters } from "@/components/drafts/DraftFilters";
 import { DraftScheduleButton } from "@/components/drafts/DraftScheduleButton";
 import { DraftPublishButton } from "@/components/drafts/DraftPublishButton";
@@ -21,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { api } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 import { PostImagePanel } from "@/components/intelligence/PostImagePanel";
+import { InlineCarouselGeneratorDialog } from "@/components/carousel/InlineCarouselGeneratorDialog";
 
 interface Draft {
   id: string;
@@ -59,11 +61,8 @@ export default function Drafts() {
   const [isSaving, setIsSaving] = useState(false);
   const [lastSavedAt, setLastSavedAt] = useState<string>("");
 
-  // Smart Carousel State
+  // Smart Carousel State — now handled by InlineCarouselGeneratorDialog
   const [showCarouselDialog, setShowCarouselDialog] = useState(false);
-  const [carouselSlideCount, setCarouselSlideCount] = useState("6");
-  const [carouselTemplate, setCarouselTemplate] = useState("dark_modern");
-  const [isGeneratingCarousel, setIsGeneratingCarousel] = useState(false);
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('');
@@ -102,11 +101,23 @@ export default function Drafts() {
     // Search filter
     if (searchQuery) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(draft =>
-        draft.content.text?.toLowerCase().includes(query) ||
-        draft.title?.toLowerCase().includes(query) ||
-        draft.content.hashtags?.some(tag => tag.toLowerCase().includes(query))
-      );
+      filtered = filtered.filter(draft => {
+        // Parse content safely — carousel drafts store JSON string
+        const contentText = (() => {
+          try {
+            const c = typeof draft.content === 'string' ? JSON.parse(draft.content) : draft.content;
+            if (Array.isArray(c?.slides)) {
+              return c.slides.map((s: any) => `${s.title || ''} ${s.body || ''}`).join(' ');
+            }
+            return c?.text || c?.content || '';
+          } catch { return ''; }
+        })();
+        return (
+          contentText.toLowerCase().includes(query) ||
+          draft.title?.toLowerCase().includes(query) ||
+          (draft.content as any)?.hashtags?.some((tag: string) => tag.toLowerCase().includes(query))
+        );
+      });
     }
 
     // Platform filter
@@ -362,26 +373,8 @@ export default function Drafts() {
     }
   };
 
-  const handleGenerateCarousel = async () => {
-    if (!editText.trim()) return;
-    setIsGeneratingCarousel(true);
-    try {
-      const response = await api.post('/carousel/generate-smart', {
-        source_text: editText,
-        slide_count: parseInt(carouselSlideCount, 10),
-        template: carouselTemplate,
-        idempotency_key: `smart-carousel-${Date.now()}`
-      });
-      if (response.data?.jobId) {
-        toast({ title: 'Success', description: "Carousel generation started!" });
-        window.location.href = `/carousel?jobId=${response.data.jobId}`;
-      }
-    } catch (e: any) {
-      toast({ title: 'Error', description: e.response?.data?.error || "Failed to start carousel generation", variant: 'destructive' });
-    } finally {
-      setIsGeneratingCarousel(false);
-    }
-  };
+  // handleGenerateCarousel is now handled inside InlineCarouselGeneratorDialog
+
 
   return (
     <div className="space-y-6">
@@ -479,21 +472,36 @@ export default function Drafts() {
             }`}>
             {filteredDrafts.map((draft) => (
               <div key={draft.id} className="space-y-2">
-                <DraftCard
-                  draft={draft}
-                  onEdit={handleEdit}
-                  onSchedule={handleSchedule}
-                  onDelete={handleDelete}
-                  onDuplicate={handleDuplicate}
-                />
-                <div className="flex justify-end">
-                  <DraftScheduleButton
-                    draftId={draft.id}
-                    draftTitle={draft.title || "Untitled Draft"}
-                    platform={draft.platform}
-                    contentType={draft.content_type}
+                {draft.content_type === 'carousel' ? (
+                  /* Carousel drafts get a dedicated card with built-in actions */
+                  <CarouselDraftCard
+                    draft={draft}
+                    onDelete={() => {
+                      // Card handles the API delete internally — just refresh the list
+                      queryClient.invalidateQueries({ queryKey: ['drafts'] });
+                    }}
                   />
-                </div>
+                ) : (
+                  /* All other draft types use the standard card */
+                  <>
+                    <DraftCard
+                      draft={draft}
+                      onEdit={handleEdit}
+                      onSchedule={handleSchedule}
+                      onDelete={handleDelete}
+                      onDuplicate={handleDuplicate}
+                    />
+                    <div className="flex justify-end">
+                      <DraftScheduleButton
+                        draftId={draft.id}
+                        draftTitle={draft.title || "Untitled Draft"}
+                        draftContent={typeof draft.content === 'string' ? draft.content : (draft.content as any)?.text || (draft.content as any)?.content || draft.title || ''}
+                        platform={draft.platform}
+                        contentType={draft.content_type}
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>
@@ -641,57 +649,14 @@ export default function Drafts() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showCarouselDialog} onOpenChange={setShowCarouselDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="h-5 w-5 text-creator-violet" />
-              Smart Carousel Settings
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Slide Count</Label>
-              <Select value={carouselSlideCount} onValueChange={setCarouselSlideCount}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select slide count" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="4">4 Slides</SelectItem>
-                  <SelectItem value="5">5 Slides</SelectItem>
-                  <SelectItem value="6">6 Slides</SelectItem>
-                  <SelectItem value="7">7 Slides</SelectItem>
-                  <SelectItem value="8">8 Slides</SelectItem>
-                  <SelectItem value="9">9 Slides</SelectItem>
-                  <SelectItem value="10">10 Slides</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Template Style</Label>
-              <Select value={carouselTemplate} onValueChange={setCarouselTemplate}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select template" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="dark_modern">Dark Modern (Default)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCarouselDialog(false)}>Cancel</Button>
-            <Button onClick={handleGenerateCarousel} disabled={isGeneratingCarousel} className="bg-creator-violet text-white">
-              {isGeneratingCarousel ? (
-                <Wand2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <LayoutTemplate className="mr-2 h-4 w-4" />
-              )}
-              Generate Carousel
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Inline Carousel Generator — full cycle in one modal, no navigation away */}
+      <InlineCarouselGeneratorDialog
+        open={showCarouselDialog}
+        onOpenChange={setShowCarouselDialog}
+        sourceText={editText}
+        topic={editTitle || editingDraft?.title || "LinkedIn Carousel"}
+        sourceDraftId={editingDraft?.id}
+      />
     </div>
   );
 }

@@ -41,16 +41,27 @@ export const publishController = {
                 return;
             }
 
-            // Check if draft has an image in its metadata
+            // Check if draft has an image or PDF in its metadata
             let imageToPublish: { b64: string; format: string } | undefined = undefined;
+            let documentToPublish: { path: string; name: string } | undefined = undefined;
+
             if (req.body.draft_id) {
                 const draftResult = await pool.query(
-                    `SELECT metadata FROM drafts WHERE id = $1 AND user_id = $2`,
+                    `SELECT title, metadata FROM drafts WHERE id = $1 AND user_id = $2`,
                     [req.body.draft_id, userId]
                 );
                 if (draftResult.rows.length > 0) {
                     const metadata = draftResult.rows[0].metadata || {};
-                    if (metadata.image_b64) {
+                    const title = draftResult.rows[0].title || 'Carousel';
+
+                    if (metadata.export_pdf_path) {
+                        const path = require('path');
+                        logger.info('Found PDF in draft metadata. Will attach to LinkedIn post.', { draftId: req.body.draft_id });
+                        documentToPublish = {
+                            path: path.join(__dirname, '..', '..', '..', 'storage', 'carousel_exports', metadata.export_pdf_path),
+                            name: title
+                        };
+                    } else if (metadata.image_b64) {
                         logger.info('Found image in draft metadata. Will attach to LinkedIn post.', { draftId: req.body.draft_id });
                         imageToPublish = {
                             b64: metadata.image_b64,
@@ -65,7 +76,8 @@ export const publishController = {
                 accessToken,
                 connection.platform_user_id,
                 content,
-                imageToPublish
+                imageToPublish,
+                documentToPublish
             );
 
             // 4. Log the published post
@@ -116,7 +128,7 @@ export const publishController = {
             }
 
             res.status(500).json({
-                error: 'Failed to publish content',
+                error: err.message,
                 details: err.message,
             });
         }

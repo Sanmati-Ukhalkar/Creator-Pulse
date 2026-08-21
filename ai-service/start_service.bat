@@ -13,8 +13,8 @@ if exist "venv\Scripts\activate.bat" (
     exit /b 1
 )
 
-echo Installing/Updating dependencies...
-pip install -r requirements.txt
+echo Dependencies should already be installed. Skipping auto-install.
+REM pip install -r requirements.txt
 
 echo Starting AI Service...
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000

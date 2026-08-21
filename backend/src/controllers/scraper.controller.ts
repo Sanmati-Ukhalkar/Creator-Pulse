@@ -48,6 +48,7 @@ export const scraperController = {
 
             let scrapedContent: ScrapedItem[] = [];
             let rateLimited = false;
+            let insertedCount = 0;
 
             // 3. Route to Scraper
             try {
@@ -71,6 +72,19 @@ export const scraperController = {
                             await pool.query('UPDATE sources SET metrics = $1 WHERE id = $2', [newMetrics, source_id]);
                         }
                     }
+                } else if (source.source_type === 'tavily') {
+                    const queries = await pool.query('SELECT id, query_string FROM listening_queries WHERE user_id = $1', [user_id]);
+                    const { liveSearchService } = require('../services/live_search.service');
+                    // We don't populate scrapedContent because runListeningQuery inserts directly.
+                    // But we can track insertedCount.
+                    for (const q of queries.rows) {
+                        try {
+                            const count = await liveSearchService.runListeningQuery(user_id, q.id, q.query_string);
+                            if (count) insertedCount += count;
+                        } catch (err: any) {
+                            logger.error('Error running live search query in scraper', { error: err.message, queryId: q.id });
+                        }
+                    }
                 } else {
                     throw new Error(`Unsupported source type: ${source.source_type}`);
                 }
@@ -88,7 +102,6 @@ export const scraperController = {
             }
 
             // 4. Store Content (Deduplicate)
-            let insertedCount = 0;
             if (scrapedContent.length > 0) {
                 for (const item of scrapedContent) {
                     const hash = generateContentHash(item.content);

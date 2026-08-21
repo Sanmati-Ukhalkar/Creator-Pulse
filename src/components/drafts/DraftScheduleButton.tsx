@@ -12,15 +12,17 @@ import { Calendar as CalendarIcon, Send, CheckCircle } from "lucide-react";
 import { format } from "date-fns";
 import { useDeliveryScheduler, type DeliveryPlatform, type DeliveryContentType } from "@/hooks/useDeliveryScheduler";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
 
 interface DraftScheduleButtonProps {
   draftId: string;
   draftTitle: string;
+  draftContent?: string;
   platform: string;
   contentType: string;
 }
 
-export function DraftScheduleButton({ draftId, draftTitle, platform, contentType }: DraftScheduleButtonProps) {
+export function DraftScheduleButton({ draftId, draftTitle, draftContent, platform, contentType }: DraftScheduleButtonProps) {
   const { user } = useAuth();
   const { scheduleDelivery, isScheduling } = useDeliveryScheduler();
   
@@ -75,11 +77,23 @@ export function DraftScheduleButton({ draftId, draftTitle, platform, contentType
   const handleSchedule = () => {
     if (!user) return;
 
+    if (selectedPlatforms.length === 0) {
+      toast.error('Please select at least one platform before scheduling.');
+      return;
+    }
+
     const scheduledDateTime = new Date(selectedDate);
     const [hours, minutes] = selectedTime.split(':');
     scheduledDateTime.setHours(parseInt(hours), parseInt(minutes), 0, 0);
 
+    if (scheduledDateTime <= new Date()) {
+      toast.error('Please select a future date and time.');
+      return;
+    }
+
     const deliveryType = mapToDeliveryContentType(contentType);
+    // Use actual draft content, fall back to title so content is never empty
+    const contentToSchedule = draftContent || draftTitle || 'Scheduled post';
 
     selectedPlatforms.forEach(platformId => {
       scheduleDelivery({
@@ -89,7 +103,8 @@ export function DraftScheduleButton({ draftId, draftTitle, platform, contentType
         scheduledFor: scheduledDateTime.toISOString(),
         draftId,
         autoGenerate,
-        customPrompt: customPrompt || undefined
+        customPrompt: customPrompt || undefined,
+        content: contentToSchedule,
       });
     });
 

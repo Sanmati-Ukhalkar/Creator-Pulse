@@ -60,20 +60,20 @@ const Index = () => {
 
       {/* Header */}
       <header className="border-b border-border bg-background/80 backdrop-blur-xl sticky top-0 z-10">
-        <div className="flex items-center justify-between px-6 py-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between px-6 py-4 gap-4">
           <div className="flex items-center space-x-4">
             <div>
               <h1 className="text-2xl font-bold creator-text-gradient">{greeting}, {userName}!</h1>
               <p className="text-muted-foreground">Ready to create something amazing today?</p>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
-            <button className="glass-button px-4 py-2 text-sm font-medium" onClick={() => navigate('/intelligence')}>
+          <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <button className="glass-button px-4 py-2 text-sm font-medium whitespace-nowrap" onClick={() => navigate('/intelligence')}>
               <Sparkles className="w-4 h-4 mr-2" />
               AI Studio
             </button>
             <button
-              className="bg-creator-gradient px-4 py-2 rounded-lg text-sm font-medium text-primary-foreground hover-lift"
+              className="bg-creator-gradient px-4 py-2 rounded-lg text-sm font-medium text-primary-foreground hover-lift whitespace-nowrap"
               onClick={() => navigate('/intelligence?platform=linkedin')}
             >
               <Zap className="w-4 h-4 mr-2" />
@@ -104,16 +104,16 @@ const Index = () => {
                   ? `${totalDrafts} draft${totalDrafts !== 1 ? 's' : ''} in your pipeline${scheduledDrafts > 0 ? `, ${scheduledDrafts} scheduled` : ''}.${linkedinStatus?.connected ? ' LinkedIn is connected and ready to publish.' : ''}`
                   : 'Generate your first AI-powered draft to get started.'}
               </p>
-              <div className="flex items-center space-x-4">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                 <button
-                  className="bg-creator-gradient px-6 py-3 rounded-lg font-medium text-primary-foreground hover-lift"
+                  className="bg-creator-gradient px-6 py-3 rounded-lg font-medium text-primary-foreground hover-lift w-full sm:w-auto"
                   onClick={() => navigate('/drafts')}
                 >
                   Review Drafts
                 </button>
                 <button
                   onClick={() => navigate('/onboarding')}
-                  className="glass-button px-6 py-3 font-medium"
+                  className="glass-button px-6 py-3 font-medium w-full sm:w-auto"
                 >
                   Try Onboarding
                 </button>

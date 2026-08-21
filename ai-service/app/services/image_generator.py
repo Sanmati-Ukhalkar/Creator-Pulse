@@ -13,36 +13,51 @@ logger = logging.getLogger(__name__)
 
 # ─── Prompt Concept Extractor ────────────────────────────────────────────────
 
-VISUAL_CONCEPT_PROMPT = """You are a visual art director specializing in LinkedIn content.
-Given the following LinkedIn post, extract a concise image prompt (max 40 words) for a professional banner image.
+VISUAL_CONCEPT_PROMPT = """You are a world-class visual art director creating LinkedIn banner images.
 
-Rules:
-- No text overlays, no logos, no people's faces
-- Abstract, conceptual, or metaphorical — never literal stock photo style
-- Professional and polished — suitable for LinkedIn
-- Use vivid visual language: lighting, textures, colors, compositions
-- Do NOT mention LinkedIn or social media
+Given the post topic and post content below, craft a HIGHLY SPECIFIC image generation prompt (max 55 words) for a professional LinkedIn banner.
 
-LinkedIn Post:
+Topic: {topic}
+
+Post Content:
 {post_text}
 
-Return ONLY the image prompt. No explanation, no punctuation outside the prompt."""
+Your prompt MUST include ALL of the following:
+1. The CORE VISUAL SUBJECT — a specific metaphor or abstract concept that represents this exact topic
+2. STYLE — e.g. "digital art", "cinematic photography", "3D render", "flat design illustration", "oil painting"
+3. MOOD & LIGHTING — e.g. "warm golden hour light", "cool blue ambient glow", "dramatic chiaroscuro"
+4. COLOR PALETTE — 2-3 specific colors that match the topic's tone
+5. COMPOSITION NOTE — e.g. "wide landscape view", "macro close-up", "bird's eye perspective"
+
+Rules:
+- NO text, NO logos, NO people's faces, NO LinkedIn branding
+- Make it DIRECTLY relevant to the topic — not generic business imagery
+- Professional, polished, suitable for LinkedIn
+
+Return ONLY the image prompt. No explanation, no labels, no punctuation outside the prompt."""
 
 
-async def _extract_visual_concept(post_text: str) -> str:
-    """Use gpt-4o-mini to extract a clean visual prompt from post text."""
+async def _extract_visual_concept(post_text: str, topic: str) -> str:
+    """Use gpt-4o-mini to extract a rich, structured visual prompt from post text and topic."""
     settings = get_settings()
     client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+
+    # Use up to 1200 chars of post text for better context
+    truncated_post = post_text[:1200] if len(post_text) > 1200 else post_text
+
     response = await client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "user", "content": VISUAL_CONCEPT_PROMPT.format(post_text=post_text[:800])}
+            {"role": "user", "content": VISUAL_CONCEPT_PROMPT.format(
+                topic=topic,
+                post_text=truncated_post
+            )}
         ],
-        temperature=0.6,
-        max_tokens=80,
+        temperature=0.75,
+        max_tokens=120,
     )
     concept = response.choices[0].message.content.strip()
-    logger.info(f"Extracted visual concept: {concept[:80]}...")
+    logger.info(f"Extracted visual concept for topic '{topic[:40]}': {concept[:100]}...")
     return concept
 
 
@@ -54,19 +69,24 @@ async def generate_with_pollinations(post_text: str, topic: str, seed: int = 42)
     Returns base64-encoded JPEG + the prompt used.
     """
     start = time.time()
-    settings = get_settings()
 
-    # Build enriched prompt
-    concept = await _extract_visual_concept(post_text)
-    full_prompt = f"Professional LinkedIn banner, {concept}, minimalist modern design, high quality, 4K"
+    # Extract a rich, topic-aware visual concept from the actual post text
+    concept = await _extract_visual_concept(post_text, topic)
+
+    # Build the full Pollinations prompt — include topic explicitly for extra grounding
+    full_prompt = (
+        f"{concept}, "
+        f"ultra high quality, 4K resolution, sharp focus, "
+        f"professional LinkedIn banner, no text, no watermark"
+    )
 
     encoded_prompt = quote(full_prompt)
     url = (
         f"https://image.pollinations.ai/prompt/{encoded_prompt}"
-        f"?width=1216&height=832&model=flux&seed={seed}&nologo=true&enhance=true"
+        f"?width=1216&height=832&model=flux&seed={seed}&nologo=true&enhance=true&safe=false"
     )
 
-    logger.info(f"Generating image with Pollinations (seed={seed})")
+    logger.info(f"Generating image with Pollinations Flux (seed={seed}) | prompt: {full_prompt[:120]}...")
 
     async with httpx.AsyncClient(timeout=90.0) as client:
         response = await client.get(url, follow_redirects=True)
@@ -87,6 +107,7 @@ async def generate_with_pollinations(post_text: str, topic: str, seed: int = 42)
         "prompt_used": full_prompt,
         "processing_time_ms": processing_ms,
     }
+
 
 
 # ─── Gemini (Free with API Key, ~500/day) ────────────────────────────────────
@@ -111,12 +132,11 @@ async def generate_with_gemini(post_text: str, topic: str) -> dict:
             "google-genai is not installed. Run: pip install google-genai"
         )
 
-    concept = await _extract_visual_concept(post_text)
+    # Use the same rich, topic-aware concept extractor
+    concept = await _extract_visual_concept(post_text, topic)
     full_prompt = (
-        f"Professional LinkedIn banner image about '{topic}'. "
         f"{concept}. "
-        f"Minimalist, modern, clean aesthetic. No text overlays. No people's faces. "
-        f"High quality, 16:9 aspect ratio."
+        f"Ultra high quality, 16:9 aspect ratio. No text overlays. No people's faces. No watermarks."
     )
 
     logger.info("Generating image with Gemini Flash Image")

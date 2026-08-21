@@ -33,6 +33,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { PostImagePanel } from "./PostImagePanel";
+import { InlineCarouselGeneratorDialog } from "@/components/carousel/InlineCarouselGeneratorDialog";
 
 interface ContentGenerationFormProps {
   topicId?: string;
@@ -84,11 +85,8 @@ export const ContentGenerationForm = ({
   // Publishing State
   const [isPublishing, setIsPublishing] = useState(false);
 
-  // Smart Carousel State
+  // Smart Carousel State — now handled by InlineCarouselGeneratorDialog
   const [showCarouselDialog, setShowCarouselDialog] = useState(false);
-  const [carouselSlideCount, setCarouselSlideCount] = useState("6");
-  const [carouselTemplate, setCarouselTemplate] = useState("dark_modern");
-  const [isGeneratingCarousel, setIsGeneratingCarousel] = useState(false);
 
   // Generated Image State
   const [generatedImageB64, setGeneratedImageB64] = useState<string | null>(null);
@@ -102,10 +100,18 @@ export const ContentGenerationForm = ({
   const contentTypes = [
     { value: "text_post", label: "Short Post" },
     { value: "article", label: "Long Article" },
+    { value: "carousel", label: "LinkedIn Carousel" },
   ];
 
   const handleGenerateHooks = async () => {
     if (!platform || !contentType) return;
+
+    // Carousel generation is a dedicated async pipeline — redirect to the Carousel page
+    if (contentType === 'carousel') {
+      const topic = topicTitle || '';
+      window.location.href = `/carousel?topic=${encodeURIComponent(topic)}`;
+      return;
+    }
 
     try {
       const result = await generateHooksAsync({
@@ -190,26 +196,7 @@ export const ContentGenerationForm = ({
     if (onSuccess) onSuccess();
   };
 
-  const handleGenerateCarousel = async () => {
-    if (!generatedContent) return;
-    setIsGeneratingCarousel(true);
-    try {
-      const response = await api.post('/carousel/generate-smart', {
-        source_text: generatedContent,
-        slide_count: parseInt(carouselSlideCount, 10),
-        template: carouselTemplate,
-        idempotency_key: `smart-carousel-${Date.now()}`
-      });
-      if (response.data?.jobId) {
-        toast.success("Carousel generation started!");
-        window.location.href = `/carousel?jobId=${response.data.jobId}`;
-      }
-    } catch (e: any) {
-      toast.error(e.response?.data?.error || "Failed to start carousel generation");
-    } finally {
-      setIsGeneratingCarousel(false);
-    }
-  };
+  // handleGenerateCarousel is now handled inside InlineCarouselGeneratorDialog
 
   // If content is generated, show the RESULT view
   if (step === "result" && generatedContent) {
@@ -269,57 +256,14 @@ export const ContentGenerationForm = ({
           </div>
         </CardContent>
 
-        <Dialog open={showCarouselDialog} onOpenChange={setShowCarouselDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-creator-violet" />
-                Smart Carousel Settings
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Slide Count</Label>
-                <Select value={carouselSlideCount} onValueChange={setCarouselSlideCount}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select slide count" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="4">4 Slides</SelectItem>
-                    <SelectItem value="5">5 Slides</SelectItem>
-                    <SelectItem value="6">6 Slides</SelectItem>
-                    <SelectItem value="7">7 Slides</SelectItem>
-                    <SelectItem value="8">8 Slides</SelectItem>
-                    <SelectItem value="9">9 Slides</SelectItem>
-                    <SelectItem value="10">10 Slides</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Template Style</Label>
-                <Select value={carouselTemplate} onValueChange={setCarouselTemplate}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select template" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="dark_modern">Dark Modern (Default)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowCarouselDialog(false)}>Cancel</Button>
-              <Button onClick={handleGenerateCarousel} disabled={isGeneratingCarousel} className="bg-creator-violet text-white">
-                {isGeneratingCarousel ? (
-                  <Wand2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <LayoutTemplate className="mr-2 h-4 w-4" />
-                )}
-                Generate Carousel
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* Inline Carousel Generator — full cycle in one modal, no page navigation */}
+        <InlineCarouselGeneratorDialog
+          open={showCarouselDialog}
+          onOpenChange={setShowCarouselDialog}
+          sourceText={generatedContent || ""}
+          topic={topicTitle || "LinkedIn Carousel"}
+          sourceDraftId={generatedDraftId}
+        />
       </Card>
     );
   }
@@ -338,8 +282,8 @@ export const ContentGenerationForm = ({
             grabs the most attention.
           </p>
         </CardHeader>
-        <CardContent className="px-0 space-y-4">
-          <div className="grid gap-3">
+        <CardContent className="px-0 space-y-4 flex flex-col h-full">
+          <div className="grid gap-3 max-h-[50vh] overflow-y-auto pr-2">
             {generatedHooks.map((h: any, idx) => (
               <div
                 key={idx}
@@ -361,7 +305,7 @@ export const ContentGenerationForm = ({
             ))}
           </div>
 
-          <div className="flex gap-3 pt-4 justify-end">
+          <div className="flex gap-3 pt-4 justify-end mt-auto border-t">
             <Button variant="ghost" onClick={() => setStep("setup")}>
               Back
             </Button>

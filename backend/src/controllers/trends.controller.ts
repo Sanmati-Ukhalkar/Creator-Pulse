@@ -90,10 +90,10 @@ export const trendsController = {
             const savedTopics = [];
             for (const topicData of aiResponse.topics) {
                 const topicInsert = await pool.query(
-                    `INSERT INTO topics (user_id, title, description, keywords, trend_score, confidence_score, created_at)
-                     VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                    `INSERT INTO topics (user_id, title, description, keywords, trend_score, confidence_score, is_trending, created_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
                      RETURNING *`,
-                    [userId, topicData.topic, topicData.description, topicData.keywords || [], topicData.score || 0, 80]
+                    [userId, topicData.topic, topicData.description, topicData.keywords || [], topicData.score || 0, topicData.confidence_score || 80, (topicData.score || 0) >= 75]
                 );
                 savedTopics.push(topicInsert.rows[0]);
             }

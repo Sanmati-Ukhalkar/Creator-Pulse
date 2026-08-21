@@ -7,11 +7,12 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Plus, Twitter, Rss, Hash, Trash2, BarChart } from "lucide-react";
+import { Plus, Twitter, Rss, Hash, Trash2, BarChart, Newspaper, Globe } from "lucide-react";
 import { SourceSyncButton } from "@/components/sources/SourceSyncButton";
 import { AddTwitterSource } from "@/components/sources/AddTwitterSource";
 import { AddRSSSource } from "@/components/sources/AddRSSSource";
 import { AddTagsSource } from "@/components/sources/AddTagsSource";
+import { AddNewsApiSource } from "@/components/sources/AddNewsApiSource";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -22,7 +23,7 @@ import { useContentScraper } from "@/hooks/useContentScraper";
 
 interface Source {
   id: string;
-  source_type: 'twitter' | 'rss' | 'tags';
+  source_type: 'twitter' | 'rss' | 'tags' | 'tavily' | 'newsapi';
   source_name: string;
   source_url: string | null;
   source_config: any;
@@ -35,7 +36,7 @@ interface Source {
 }
 
 const Sources = () => {
-  const [newSourceType, setNewSourceType] = useState<'twitter' | 'rss' | 'tags'>('twitter');
+  const [newSourceType, setNewSourceType] = useState<'twitter' | 'rss' | 'tags' | 'newsapi'>('twitter');
   const [selectedSources, setSelectedSources] = useState<string[]>([]);
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -87,6 +88,8 @@ const Sources = () => {
       case 'twitter': return <Twitter className="h-4 w-4" />;
       case 'rss': return <Rss className="h-4 w-4" />;
       case 'tags': return <Hash className="h-4 w-4" />;
+      case 'tavily': return <Globe className="h-4 w-4" />;
+      case 'newsapi': return <Newspaper className="h-4 w-4" />;
       default: return null;
     }
   };
@@ -308,7 +311,7 @@ const Sources = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={newSourceType} onValueChange={(v) => setNewSourceType(v as typeof newSourceType)}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="twitter" className="flex items-center gap-2">
                 <Twitter className="h-4 w-4" />
                 Twitter
@@ -320,6 +323,10 @@ const Sources = () => {
               <TabsTrigger value="tags" className="flex items-center gap-2">
                 <Hash className="h-4 w-4" />
                 Tags
+              </TabsTrigger>
+              <TabsTrigger value="newsapi" className="flex items-center gap-2">
+                <Newspaper className="h-4 w-4" />
+                NewsAPI
               </TabsTrigger>
             </TabsList>
 
@@ -333,6 +340,10 @@ const Sources = () => {
 
             <TabsContent value="tags" className="space-y-4">
               <AddTagsSource />
+            </TabsContent>
+
+            <TabsContent value="newsapi" className="space-y-4">
+              <AddNewsApiSource />
             </TabsContent>
           </Tabs>
         </CardContent>

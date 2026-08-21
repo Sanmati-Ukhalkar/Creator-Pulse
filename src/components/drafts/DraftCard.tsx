@@ -113,9 +113,20 @@ export function DraftCard({ draft, onEdit, onSchedule, onDelete, onDuplicate }: 
     return text.substring(0, maxLength) + '...';
   };
 
-  const contentText = typeof (draft.content as any)?.text === 'string'
-    ? (draft.content as any).text
-    : (typeof (draft.content as any) === 'string' ? String(draft.content) : '');
+  let parsedContent = draft.content;
+  if (typeof draft.content === 'string') {
+    try {
+      parsedContent = JSON.parse(draft.content);
+    } catch (e) {
+      // Keep as string if parsing fails
+    }
+  }
+
+  const contentText = typeof (parsedContent as any)?.text === 'string'
+    ? (parsedContent as any).text
+    : (typeof (parsedContent as any)?.content === 'string'
+        ? (parsedContent as any).content
+        : (typeof parsedContent === 'string' ? String(parsedContent) : ''));
   const displayText = isExpanded ? contentText : truncateText(contentText);
 
   return (

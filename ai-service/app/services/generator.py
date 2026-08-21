@@ -2,6 +2,7 @@ import time
 import json
 import logging
 import asyncio
+from duckduckgo_search import DDGS
 from langchain_openai import ChatOpenAI
 from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
@@ -39,7 +40,7 @@ REQUIREMENTS:
 5. Assign a 'score' (1-100) based on virality potential.
 
 OUTPUT FORMAT (respond in valid JSON only, no markdown):
-{{"topics": [{{"topic": "The exact topic title", "description": "Brief description", "keywords": ["key1", "key2"], "score": 85}}]}}"""
+{{"topics": [{{"topic": "The exact topic title", "description": "Brief description", "keywords": ["key1", "key2"], "score": 85, "confidence_score": 90}}]}}"""
 
 
 HOOK_GENERATION_PROMPT = """You are an elite copywriter and social media strategist known for viral hooks.
@@ -105,6 +106,50 @@ REQUIREMENTS:
 OUTPUT FORMAT (respond in valid JSON only, no markdown):
 {{"content": "The full post text with line breaks", "hook": "The CHOSEN HOOK", "hashtags": ["#tag1", "#tag2", "#tag3"]}}"""
 
+STREAM_LINKEDIN_SHORT_PROMPT = """You are a LinkedIn content strategist who creates viral, engaging posts.
+Generate a short LinkedIn post (under 300 words) based on the trending topic.
+
+TRENDING TOPIC: {topic}
+TOPIC DESCRIPTION: {description}
+SOURCE ARTICLE SUMMARY: {article_content}
+CHOSEN HOOK: {hook_text}
+
+REQUIREMENTS:
+1. You MUST start the post EXACTLY with the CHOSEN HOOK. Do not alter it.
+2. Use short paragraphs (1-2 sentences each)
+3. Add line breaks between paragraphs for readability
+4. Include a clear call-to-action at the end (question, ask for opinion, etc.)
+5. Suggest 3-5 relevant hashtags at the bottom
+6. Write in first person, conversational tone
+7. Make it thought-provoking, not promotional
+8. Under 300 words total
+9. Use emojis sparingly (1-3 max)
+
+OUTPUT FORMAT:
+Respond with JUST the raw post text and hashtags at the bottom. Do NOT use JSON formatting, markdown code blocks, or any other wrapper. Just the raw text."""
+
+STREAM_LINKEDIN_LONG_PROMPT = """You are a LinkedIn thought leader who creates in-depth, valuable content.
+Generate a long-form LinkedIn post (500-800 words) based on the trending topic.
+
+TRENDING TOPIC: {topic}
+TOPIC DESCRIPTION: {description}
+SOURCE ARTICLE SUMMARY: {article_content}
+CHOSEN HOOK: {hook_text}
+
+REQUIREMENTS:
+1. You MUST start the post EXACTLY with the CHOSEN HOOK. Do not alter it.
+2. Structure with clear sections and transitions
+3. Include personal insights, observations, or lessons learned
+4. Use real-world examples or analogies to illustrate points
+5. End with a discussion question to drive engagement
+6. Suggest 5-7 relevant hashtags at the bottom
+7. Professional but approachable tone — like talking to a smart colleague
+8. Between 500-800 words
+9. Use emojis for visual breaks (3-5 total)
+10. Include a "TL;DR" or key takeaway
+
+OUTPUT FORMAT:
+Respond with JUST the raw post text and hashtags at the bottom. Do NOT use JSON formatting, markdown code blocks, or any other wrapper. Just the raw text."""
 
 async def generate_linkedin_content(request: GenerateRequest) -> GenerateResponse:
     """
@@ -211,9 +256,9 @@ async def stream_linkedin_content(request: GenerateRequest):
         article_data = await scrape_article(request.trend.source_url)
 
     template = (
-        LINKEDIN_SHORT_PROMPT
+        STREAM_LINKEDIN_SHORT_PROMPT
         if request.content_type == "linkedin_short"
-        else LINKEDIN_LONG_PROMPT
+        else STREAM_LINKEDIN_LONG_PROMPT
     )
 
     prompt = ChatPromptTemplate.from_template(template)
@@ -363,6 +408,37 @@ def _parse_json_response(content: str) -> dict:
         return {}
 
 
+async def _evaluate_trend_with_search(topic: str, llm) -> tuple[int, int]:
+    """Uses DDGS to find recent news on the topic and uses LLM to score its trendiness."""
+    try:
+        def fetch_news():
+            with DDGS() as ddgs:
+                return list(ddgs.news(topic, max_results=5, safesearch='off'))
+        
+        loop = asyncio.get_event_loop()
+        news_results = await loop.run_in_executor(None, fetch_news)
+        
+        if not news_results:
+            return 30, 40 # Low score if no recent news
+            
+        news_text = "\n".join([f"- {n.get('title', '')}: {n.get('body', '')}" for n in news_results])
+        
+        prompt = ChatPromptTemplate.from_template(
+            "You are a trend analyzer. Based on the following recent news snippets about the topic '{topic}', evaluate how strongly it is trending.\n"
+            "Return a JSON object with 'trend_score' (0-100) and 'confidence_score' (0-100).\n"
+            "If the news is highly relevant, breaking, and shows a surge of interest, give a high trend_score (>80).\n"
+            "News:\n{news_text}\n"
+            "Output JSON format: {{\"trend_score\": 85, \"confidence_score\": 90}}"
+        )
+        chain = prompt | llm
+        res = await chain.ainvoke({"topic": topic, "news_text": news_text})
+        parsed = _parse_json_response(res.content)
+        return parsed.get("trend_score", 50), parsed.get("confidence_score", 50)
+    except Exception as e:
+        logger.error(f"Error evaluating trend with search: {e}")
+        return 50, 50
+
+
 async def analyze_trends(request: AnalyzeTrendsRequest) -> AnalyzeTrendsResponse:
     """Analyzes raw aggregated texts to identify distinct content topics."""
     settings = get_settings()
@@ -387,6 +463,14 @@ async def analyze_trends(request: AnalyzeTrendsRequest) -> AnalyzeTrendsResponse
     parsed = _parse_json_response(result.content)
     
     topics = parsed.get("topics", [])
+    
+    # Using LLM's own score from the raw_texts analysis
+    for topic_dict in topics:
+        if "score" not in topic_dict:
+            topic_dict["score"] = 75
+        if "confidence_score" not in topic_dict:
+            topic_dict["confidence_score"] = 85
+
     processing_time = int((time.time() - start_time) * 1000)
     tokens = result.response_metadata.get("token_usage", {}).get("total_tokens", 0) if hasattr(result, "response_metadata") else 0
     

@@ -19,24 +19,31 @@ def load_prompt(filename: str) -> str:
 async def process_carousel_job(job: Job, token: str):
     logger.info(f"Processing job {job.id} for topic: {job.data.get('topic')}")
     settings = get_settings()
+    logger.info(f"Loaded DATABASE_URL: {settings.DATABASE_URL}")
     pool = await get_db_pool()
     topic = job.data['topic']
     job_id = job.data['jobId']
     
     # Init LLMs
-    llm_mini = ChatOpenAI(model="gpt-4o-mini", temperature=0.7, model_kwargs={"response_format": {"type": "json_object"}})
-    llm_strong = ChatOpenAI(model="gpt-4o", temperature=0.7, model_kwargs={"response_format": {"type": "json_object"}})
+    llm_mini = ChatOpenAI(model="gpt-4o-mini", api_key=settings.OPENAI_API_KEY, temperature=0.7, model_kwargs={"response_format": {"type": "json_object"}})
+    llm_strong = ChatOpenAI(model="gpt-4o", api_key=settings.OPENAI_API_KEY, temperature=0.7, model_kwargs={"response_format": {"type": "json_object"}})
 
+    logger.info("Acquiring DB connection...")
     async with pool.acquire() as conn:
+        logger.info("DB connection acquired!")
         try:
             # Step A: Content Brain
+            logger.info("Step A: Updating status to 'brain'...")
             await conn.execute("UPDATE carousel_jobs SET status = 'brain' WHERE id = $1", job_id)
+            logger.info("Step A: Status updated to 'brain'! Loading prompt...")
             brain_prompt = load_prompt("content_brain.txt")
             
+            logger.info("Step A: Invoking llm_mini (Content Brain)...")
             res_brain = await llm_mini.ainvoke([
                 SystemMessage(content=brain_prompt),
                 HumanMessage(content=f"Topic: {topic}")
             ])
+            logger.info("Step A: llm_mini invoked! Parsing response...")
             brain_parsed = ContentBrainOutput.model_validate_json(res_brain.content)
             
             await conn.execute("""
@@ -80,7 +87,7 @@ async def process_carousel_job(job: Job, token: str):
 
     # Dispatch FlowProducer OUTSIDE of the DB transaction pool so we don't hold the connection
     try:
-        flow_producer = FlowProducer({"connection": settings.REDIS_URL})
+        flow_producer = FlowProducer(settings.REDIS_URL)
         children_jobs = []
         for s in slide_ids:
             children_jobs.append({

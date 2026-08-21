@@ -43,11 +43,13 @@ export const generateController = {
                 mentions: []
             };
 
+            const dbContentType = 'text_post'; // DB constraint only allows text_post, carousel, reel, story
+
             const draftInsert = await pool.query(
                 `INSERT INTO drafts (user_id, platform, content_type, title, content, status, created_at, updated_at)
                  VALUES ($1, $2, $3, $4, $5, 'draft', NOW(), NOW())
                  RETURNING id`,
-                [userId, 'linkedin', body.content_type, body.topic.substring(0, 100), JSON.stringify(draftContent)]
+                [userId, 'linkedin', dbContentType, body.topic.substring(0, 100), JSON.stringify(draftContent)]
             );
 
             logger.info('Content generated successfully and saved to drafts', {
@@ -131,11 +133,13 @@ export const generateController = {
                 mentions: []
             };
 
+            const dbContentType = 'text_post'; // DB constraint only allows text_post, carousel, reel, story
+
             const draftInsert = await pool.query(
                 `INSERT INTO drafts (user_id, platform, content_type, title, content, status, created_at, updated_at)
                  VALUES ($1, $2, $3, $4, $5, 'draft', NOW(), NOW())
                  RETURNING id`,
-                [userId, 'linkedin', body.content_type, body.topic.substring(0, 100), JSON.stringify(draftContent)]
+                [userId, 'linkedin', dbContentType, body.topic.substring(0, 100), JSON.stringify(draftContent)]
             );
 
             logger.info('Stream generated successfully and saved to drafts', { userId, draftId: draftInsert.rows[0].id });

@@ -37,6 +37,7 @@ class TopicResult(BaseModel):
     description: str
     keywords: list[str] = []
     score: int
+    confidence_score: int = 80
 
 
 class AnalyzeTrendsResponse(BaseModel):

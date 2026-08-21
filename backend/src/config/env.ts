@@ -32,6 +32,9 @@ const envSchema = z.object({
 
     // Tavily Search API
     TAVILY_API_KEY: z.string().min(10).optional(),
+    
+    // NewsAPI
+    NEWS_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

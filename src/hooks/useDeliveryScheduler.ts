@@ -77,11 +77,17 @@ export const useDeliveryScheduler = () => {
     mutationFn: async (params: ScheduleDeliveryParams) => {
       console.log('Scheduling delivery:', params)
 
+      // Resolve what content to send - prefer explicit content, then prompt, then a placeholder
+      const resolvedContent = (params as any).content || params.customPrompt || `Scheduled post for ${params.platform}`;
+
       const { data } = await api.post('/schedule', {
-        ...params,
+        content: resolvedContent,
         scheduled_at: params.scheduledFor,
-        content: params.customPrompt || "Scheduled Content" // Use prompt as content if no draft content passed? 
-        // Note: Real implementation should resolve draft content here or backend should support draft_id
+        platform: params.platform,
+        draft_id: params.draftId,
+        auto_generate: params.autoGenerate,
+        custom_prompt: params.customPrompt,
+        recurring_config: params.recurringConfig,
       });
 
       return mapBackendToFrontend(data.data);

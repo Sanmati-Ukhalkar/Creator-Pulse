@@ -12,11 +12,11 @@ import jwt from 'jsonwebtoken';
 const redisClient = new Redis(env.REDIS_URL || 'redis://localhost:6379');
 
 // Setup BullMQ Queue
-const carouselQueue = new Queue('carousel-jobs', {
+const carouselQueue = new Queue('carousel-jobs-node', {
     connection: redisClient
 });
 
-const DAILY_QUOTA = 10;
+const DAILY_QUOTA = 999;
 
 export const generateCarousel = async (req: Request, res: Response): Promise<void> => {
     try {
@@ -255,6 +255,7 @@ export const serveCarouselAsset = async (req: Request, res: Response): Promise<v
             return;
         }
 
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
         res.sendFile(finalPath);
     } catch (error) {
         logger.error('Error serving asset', error);
